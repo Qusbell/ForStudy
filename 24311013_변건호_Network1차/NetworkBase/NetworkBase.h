@@ -8,7 +8,7 @@
 #include "INetSignal.h"
 
 
-class NetworkBase : public INetInitialize, public INetSignal
+class NetworkBase : public INetInitialize
 {
 private:
 	// win 소켓
@@ -35,8 +35,5 @@ private:
 
 public:
 	virtual NetInitResult NetInitialize() override;
-
-	virtual int Send(const char* buffer, int len) override;
-	virtual int Recv(char* buffer, int len) override;
 };
 

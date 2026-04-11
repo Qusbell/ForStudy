@@ -125,10 +125,12 @@
   <ItemGroup>
     <ClInclude Include="INetInitialize.h" />
     <ClInclude Include="INetSignal.h" />
+    <ClInclude Include="NetSignal.h" />
     <ClInclude Include="NetworkBase.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NetInitResult.h" />
+    <ClCompile Include="NetSignal.cpp" />
     <ClCompile Include="NetworkBase.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
