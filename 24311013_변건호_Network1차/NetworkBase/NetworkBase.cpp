@@ -79,3 +79,15 @@ NetInitResult NetworkBase::NetInitialize()
 
 	return result;
 }
+
+int NetworkBase::Send(const char* buffer, int len)
+{
+	int result = send(m_hSocket, buffer, len, 0);
+	return result;
+}
+
+int NetworkBase::Recv(char* buffer, int len)
+{
+	int result = recv(m_hSocket, buffer, len, 0);
+	return result;
+}

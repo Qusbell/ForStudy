@@ -124,6 +124,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="INetInitialize.h" />
+    <ClInclude Include="INetSignal.h" />
     <ClInclude Include="NetworkBase.h" />
   </ItemGroup>
   <ItemGroup>
