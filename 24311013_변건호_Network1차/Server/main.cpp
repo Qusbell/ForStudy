@@ -1,4 +1,8 @@
-﻿#include "ServerBase.h"
+﻿// NetworkBase에서 이미 선언 중
+// #include <winsock2.h>
+// #include <windows.h>
+
+#include "ServerBase.h"
 #include <tchar.h>
 
 // 전역 변수

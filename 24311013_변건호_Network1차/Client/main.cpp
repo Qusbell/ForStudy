@@ -1,5 +1,8 @@
-﻿#include <winsock2.h> // NetworkBase에서 사용 중이므로 windows.h보다 먼저 포함해야 함
-#include <windows.h>
+﻿// NetworkBase에서 이미 선언 중
+// #include <winsock2.h>
+// #include <windows.h>
+
+#include "ClientBase.h"
 #include <tchar.h>
 
 // 전역 변수
