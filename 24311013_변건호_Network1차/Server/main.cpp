@@ -67,19 +67,6 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         MessageBoxA(hWnd, "Server started successfully!", "Network Test", MB_OK);
     }
 
-    // ServerBase server(DEFAULT_PORT);
-    // if (server.NetInitialize() == NetInitResult::Complete)
-    // {
-    //     // 2. 클라이언트 접속 수락 (접속할 때까지 여기서 멈춤)
-    //     SOCKET hClient = server.TryAccept();
-    // 
-    //     if (hClient != INVALID_SOCKET)
-    //     {
-    //         // 3. 통신 객체 생성 및 메시지 전송
-    //         NetSignal signal(hClient);
-    //         signal.TrySend("안녕하세요"); // string 버전 사용
-    //     }
-    // }
     // --- [테스트 코드 끝] ---
 
 

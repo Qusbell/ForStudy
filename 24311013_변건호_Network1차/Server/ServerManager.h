@@ -41,5 +41,10 @@ private:
 
 	void Broadcast(const std::string& message);
 
+
+	void AddSignal(NetSignal* signal);
+
+	void RemoveSignal(NetSignal* signal);
+
 };
 

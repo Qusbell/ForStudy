@@ -22,6 +22,7 @@ ServerManager::~ServerManager()
 		{ delete signal; }
 	}
 
+	// 크리티컬 섹션 삭제
 	DeleteCriticalSection(&m_signalsLock);
 }
 
@@ -34,7 +35,7 @@ NetInitResult ServerManager::TryStart()
 	{
 		m_isRunning = true;
 
-		// 쓰레드 시작
+		// 클라이언트 연결 수락 쓰레드 시작
 		std::thread acceptThread(&ServerManager::AcceptThread, this);
 		acceptThread.detach();
 	}
@@ -54,9 +55,7 @@ void ServerManager::AcceptThread()
 			// 새로운 클라이언트 연결 처리
 			NetSignal* newSignal = new NetSignal(hClient);
 
-			EnterCriticalSection(&m_signalsLock);
-			m_signals.push_back(newSignal);
-			LeaveCriticalSection(&m_signalsLock);
+			AddSignal(newSignal);
 
 			// 대상 Sinal로부터 recv하는 쓰레드 생성
 			std::thread recvThread(&ServerManager::RecvThread, this, newSignal);
@@ -82,9 +81,7 @@ void ServerManager::RecvThread(NetSignal* signal)
 	}
 
 	// 연결 종료 또는 오류 발생 시 해당 신호 제거
-	EnterCriticalSection(&m_signalsLock);
-	m_signals.erase(std::remove(m_signals.begin(), m_signals.end(), signal), m_signals.end());
-	LeaveCriticalSection(&m_signalsLock);
+	RemoveSignal(signal);
 
 	delete signal;
 }
@@ -103,5 +100,20 @@ void ServerManager::Broadcast(const std::string& message)
 		}
 	}
 
+	LeaveCriticalSection(&m_signalsLock);
+}
+
+
+void ServerManager::AddSignal(NetSignal* newSignal)
+{
+	EnterCriticalSection(&m_signalsLock);
+	m_signals.push_back(newSignal);
+	LeaveCriticalSection(&m_signalsLock);
+}
+
+void ServerManager::RemoveSignal(NetSignal* signal)
+{
+	EnterCriticalSection(&m_signalsLock);
+	m_signals.erase(std::remove(m_signals.begin(), m_signals.end(), signal), m_signals.end());
 	LeaveCriticalSection(&m_signalsLock);
 }
