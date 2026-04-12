@@ -55,7 +55,7 @@ void ServerManager::AcceptThread()
 			// 새로운 클라이언트 연결 처리
 			NetSignal* newSignal = new NetSignal(hClient);
 
-			AddSignal(newSignal);
+			RegisterSignal(newSignal);
 
 			// 대상 Sinal로부터 recv하는 쓰레드 생성
 			std::thread recvThread(&ServerManager::RecvThread, this, newSignal);
@@ -81,7 +81,7 @@ void ServerManager::RecvThread(NetSignal* signal)
 	}
 
 	// 연결 종료 또는 오류 발생 시 해당 신호 제거
-	RemoveSignal(signal);
+	UnregisterSignal(signal);
 
 	delete signal;
 }
@@ -104,14 +104,14 @@ void ServerManager::Broadcast(const std::string& message)
 }
 
 
-void ServerManager::AddSignal(NetSignal* newSignal)
+void ServerManager::RegisterSignal(NetSignal* newSignal)
 {
 	EnterCriticalSection(&m_signalsLock);
 	m_signals.push_back(newSignal);
 	LeaveCriticalSection(&m_signalsLock);
 }
 
-void ServerManager::RemoveSignal(NetSignal* signal)
+void ServerManager::UnregisterSignal(NetSignal* signal)
 {
 	EnterCriticalSection(&m_signalsLock);
 	m_signals.erase(std::remove(m_signals.begin(), m_signals.end(), signal), m_signals.end());
