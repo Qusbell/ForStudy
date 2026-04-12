@@ -15,7 +15,6 @@ private:
 
 	// 연결된 클라이언트 소켓과 통신을 담당하는 NetSignal 객체들의 리스트
 	std::vector<NetSignal*> m_signals;
-
 	// m_signals 리스트에 대한 동기화 객체
 	CRITICAL_SECTION m_signalsLock;
 

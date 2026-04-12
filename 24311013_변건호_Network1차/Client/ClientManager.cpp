@@ -5,7 +5,9 @@ ClientManager::ClientManager(const HWND hMainWnd) :
 	m_hMainWnd(hMainWnd),
 	m_signal(nullptr),
 	m_isRunning(false)
-{}
+{
+	InitializeCriticalSection(&m_recvQueueLock);
+}
 
 
 ClientManager::~ClientManager()
@@ -23,6 +25,8 @@ ClientManager::~ClientManager()
 		delete m_signal;
 		m_signal = nullptr;
 	}
+
+	DeleteCriticalSection(&m_recvQueueLock);
 }
 
 NetInitResult ClientManager::TryStart(const std::string& ip, unsigned short port)
@@ -41,9 +45,11 @@ NetInitResult ClientManager::TryStart(const std::string& ip, unsigned short port
 		SOCKET socket = GetClient().GetSocket();
 		m_signal = new NetSignal(socket);
 
-		// <-- recv 쓰레드 시작
+		// recv 쓰레드 시작
+		std::thread recvThread(&ClientManager::RecvThread, this);
+		recvThread.detach();
 
-		// <-- send 쓰레드 시작
+		// <-- TODO : send 쓰레드 시작
 	}
 	// 초기화 실패 시, 클라이언트 객체 정리
 	else
@@ -57,14 +63,39 @@ NetInitResult ClientManager::TryStart(const std::string& ip, unsigned short port
 }
 
 
+const std::string ClientManager::GetRecvMessage()
+{
+	std::string message;
+
+	EnterCriticalSection(&m_recvQueueLock);
+	if (m_recvQueue.empty())
+	{ 
+		message = "";
+	}
+	else
+	{
+		message = m_recvQueue.front();
+		m_recvQueue.pop();
+	}
+	LeaveCriticalSection(&m_recvQueueLock);
+
+	return message;
+}
+
+
 void ClientManager::RecvThread()
 {
 	while (m_isRunning)
 	{
 		std::string recvBuffer;
-		if (0 < m_signal->TryRecv(recvBuffer)) {
-			//std::string* pMsg = new std::string(recvBuffer);
-			PostMessage(m_hMainWnd, WM_RECV_DATA, 0, (LPARAM)&recvBuffer);
+
+		if (0 < m_signal->TryRecv(recvBuffer))
+		{
+			EnterCriticalSection(&m_recvQueueLock);
+			m_recvQueue.push(recvBuffer);
+			LeaveCriticalSection(&m_recvQueueLock);
+
+			PostMessage(m_hMainWnd, WM_RECV_DATA, 0, (LPARAM)this);
 		}
 		else { break; }
 	}
