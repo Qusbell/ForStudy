@@ -13,7 +13,11 @@ ServerManager::~ServerManager()
 {
 	m_isRunning = false;
 
-	delete m_server;
+	if (m_server != nullptr)
+	{
+		delete m_server;
+		m_server = nullptr;
+	}
 
 	// NetSignal 객체들도 모두 삭제
 	for (NetSignal* signal : m_signals)
