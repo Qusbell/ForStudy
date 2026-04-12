@@ -11,6 +11,8 @@ HINSTANCE hInst;                                // 현재 인스턴스 핸들
 LPCTSTR szWindowClass = _T("ChattingAppClass"); // 창 클래스 이름
 LPCTSTR szTitle = _T("Win API Network Chatting"); // 창 제목 바 이름
 
+HWND hListBox, hEdit, hButton;
+
 // 함수의 선언 (Forward Declaration)
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
@@ -60,23 +62,22 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
 
+	// D. 클라이언트 매니저 초기화 및 서버 연결 시도
+    ClientManager clientManager(hWnd);
+    SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)&clientManager);
 
-    // --- [여기서부터 테스트 코드 삽입] ---
-    
-	ClientManager clientManager(hWnd);
     if (clientManager.TryStart(DEFAULT_IP, DEFAULT_PORT) == NetInitResult::Complete)
     {
-
+		MessageBox(hWnd, _T("서버에 연결되었습니다."), _T("연결 성공"), MB_OK | MB_ICONINFORMATION);
     }
     else
     {
-        
-    }
+        MessageBox(hWnd, _T("서버에 연결할 수 없습니다."), _T("연결 실패"), MB_OK | MB_ICONERROR);
+        return 0;
+	}
 
-    // --- [테스트 코드 끝] ---
 
-
-    // D. 메시지 루프: 프로그램이 종료될 때까지 메시지를 수신하고 전달
+    // E. 메시지 루프: 프로그램이 종료될 때까지 메시지를 수신하고 전달
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0))
     {
@@ -93,8 +94,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_CREATE:
-        // 여기에 채팅창 UI (Edit Control, Button 등) 생성 코드가 들어갑니다.
+    {
+        // 1. 채팅 내역 출력창 (ListBox)
+        hListBox = CreateWindowEx(WS_EX_CLIENTEDGE, _T("LISTBOX"), NULL,
+            WS_CHILD | WS_VISIBLE | WS_VSCROLL | LBS_NOTIFY,
+            10, 10, 460, 580, hWnd, (HMENU)1, hInst, NULL);
+
+        // 2. 메시지 입력창 (Edit)
+        hEdit = CreateWindowEx(WS_EX_CLIENTEDGE, _T("EDIT"), NULL,
+            WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL,
+            10, 600, 380, 30, hWnd, (HMENU)2, hInst, NULL);
+
+        // 3. 전송 버튼 (Button)
+        hButton = CreateWindow(_T("BUTTON"), _T("전송"),
+            WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            400, 600, 70, 30, hWnd, (HMENU)3, hInst, NULL);
+    }
+    break;
+
+
+    case WM_COMMAND:
+        // 버튼 클릭 이벤트 (ID가 3인 버튼)
+        if (LOWORD(wParam) == 3)
+        {
+            TCHAR szInput[512];
+            GetWindowText(hEdit, szInput, 512); // 입력창 텍스트 가져오기
+
+            if (_tcslen(szInput) > 0)
+            {
+                // 저장해둔 매니저 포인터 꺼내기
+                ClientManager* pMgr = (ClientManager*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+
+                // TCHAR를 std::string으로 변환하여 전송 (프로젝트 설정이 Unicode인 경우 고려)
+#ifdef UNICODE
+                std::wstring wstr(szInput);
+                std::string str(wstr.begin(), wstr.end());
+                pMgr->TrySendMessage(str);
+#else
+                pMgr->TrySendMessage(szInput);
+#endif
+                SetWindowText(hEdit, _T("")); // 입력창 비우기
+            }
+        }
         break;
+
 
     case WM_PAINT:
     {
@@ -105,10 +148,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     break;
 
+
     // 서버로부터 데이터가 수신되었을 때의 처리 (예: 채팅 메시지 표시)
     case WM_RECV_DATA:
     {
-        
+        ClientManager* clientManager = reinterpret_cast<ClientManager*>(lParam);
+        if (clientManager != nullptr)
+        {
+            std::string message = clientManager->GetRecvMessage();
+            SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)message.c_str());
+        }
     }
     break;
 

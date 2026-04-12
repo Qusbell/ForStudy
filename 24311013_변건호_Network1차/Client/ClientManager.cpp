@@ -100,3 +100,11 @@ void ClientManager::RecvThread()
 		else { break; }
 	}
 }
+
+void ClientManager::TrySendMessage(const std::string& message)
+{
+	if (m_isRunning)
+	{
+		m_signal->TrySend(message);
+	}
+}

@@ -35,12 +35,16 @@ public:
 
 	NetInitResult TryStart(const std::string& ip, unsigned short port);
 
-	const std::string GetRecvMessage();
-
 private:
 
 	// 서버로부터 데이터를 수신하는 쓰레드 함수 (단일)
 	void RecvThread();
 
+
+public:
+	// 서버로 데이터를 전송하는 함수 (비-쓰레드)
+	void TrySendMessage(const std::string& message);
+
+	const std::string GetRecvMessage();
 };
 
