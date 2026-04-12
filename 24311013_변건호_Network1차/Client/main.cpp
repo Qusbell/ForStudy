@@ -76,7 +76,6 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         return 0;
 	}
 
-
     // E. 메시지 루프: 프로그램이 종료될 때까지 메시지를 수신하고 전달
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0))
