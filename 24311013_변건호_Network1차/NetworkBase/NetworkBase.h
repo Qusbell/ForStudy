@@ -19,8 +19,6 @@ private:
 	SOCKET m_hSocket;
 
 protected:
-	SOCKET GetSocket() const;
-
 	void TryWSACleanUp();
 	void TryCloseSocket();
 
@@ -34,5 +32,7 @@ private:
 
 public:
 	virtual NetInitResult NetInitialize() override;
+
+	SOCKET GetSocket() const;
 };
 

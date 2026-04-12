@@ -123,9 +123,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="IServerInitialize.h" />
     <ClInclude Include="ServerBase.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\NetworkBase\NetSignal.cpp" />
     <ClCompile Include="..\NetworkBase\NetworkBase.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ServerBase.cpp" />

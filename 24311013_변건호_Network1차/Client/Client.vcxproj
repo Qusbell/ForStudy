@@ -123,6 +123,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\NetworkBase\NetSignal.cpp" />
     <ClCompile Include="..\NetworkBase\NetworkBase.cpp" />
     <ClCompile Include="ClientBase.cpp" />
     <ClCompile Include="main.cpp" />

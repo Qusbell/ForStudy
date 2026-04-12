@@ -24,6 +24,9 @@
     <ClCompile Include="..\NetworkBase\NetworkBase.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="..\NetworkBase\NetSignal.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="IInitialize.h">

@@ -3,11 +3,19 @@
 NetSignal::NetSignal(SOCKET hSocket) : m_hSocket(hSocket)
 {}
 
+NetSignal::~NetSignal()
+{
+    if (m_hSocket != INVALID_SOCKET)
+    {
+        closesocket(m_hSocket);
+        m_hSocket = INVALID_SOCKET;
+	}
+}
 
 int NetSignal::TrySend(const std::string& buffer)
 {
     // 문자열의 길이를 구합니다. (널 문자 제외)
-    int dataSize = buffer.length();
+    int dataSize = (int)buffer.length();
 
     // 1. 헤더(데이터 크기) 먼저 보내기
     int sentBytes = send(m_hSocket, (char*)&dataSize, sizeof(int), 0);

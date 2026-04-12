@@ -59,6 +59,26 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
 
+
+    // --- [여기서부터 테스트 코드 삽입] ---
+    // 1. 클라이언트 생성 (자기 자신 IP: 127.0.0.1)
+    ClientBase client("127.0.0.1", 9000);
+    if (client.NetInitialize() == NetInitResult::Complete)
+    {
+        // 2. 부모(NetworkBase)의 소켓을 가져와 통신 객체 생성
+        NetSignal signal(client.GetSocket());
+
+        // 3. 데이터 수신 대기 (서버가 보낼 때까지 여기서 멈춤)
+        std::string receivedMsg;
+        if (signal.TryRecv(receivedMsg) > 0)
+        {
+            // 4. 수신 성공 시 메시지 박스 띄우기
+            MessageBoxA(hWnd, receivedMsg.c_str(), "Network Test", MB_OK);
+        }
+    }
+    // --- [테스트 코드 끝] ---
+
+
     // D. 메시지 루프: 프로그램이 종료될 때까지 메시지를 수신하고 전달
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0))

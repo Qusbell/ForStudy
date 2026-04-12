@@ -3,6 +3,7 @@
 #include <ws2tcpip.h>
 
 #include "..\NetworkBase\NetworkBase.h"
+#include "..\NetworkBase\NetSignal.h"
 
 
 class ClientBase : public NetworkBase
