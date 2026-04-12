@@ -11,6 +11,7 @@ HINSTANCE hInst;                                // 현재 인스턴스 핸들
 LPCTSTR szWindowClass = _T("ChattingAppClass"); // 창 클래스 이름
 LPCTSTR szTitle = _T("Win API Network Chatting"); // 창 제목 바 이름
 
+// 윈도우 창 요소들
 HWND hListBox, hEdit, hButton;
 
 // 함수의 선언 (Forward Declaration)
@@ -68,13 +69,12 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
     if (clientManager.TryStart(DEFAULT_IP, DEFAULT_PORT) == NetInitResult::Complete)
     {
-		MessageBox(hWnd, _T("서버에 연결되었습니다."), _T("연결 성공"), MB_OK | MB_ICONINFORMATION);
+        // 성공 시의 처리
     }
     else
     {
-        MessageBox(hWnd, _T("서버에 연결할 수 없습니다."), _T("연결 실패"), MB_OK | MB_ICONERROR);
-        return 0;
-	}
+        // 실패 시의 처리
+    }
 
     // E. 메시지 루프: 프로그램이 종료될 때까지 메시지를 수신하고 전달
     MSG msg;
@@ -112,31 +112,53 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     break;
 
 
+//    case WM_COMMAND:
+//        // 버튼 클릭 이벤트 (ID가 3인 버튼)
+//        if (LOWORD(wParam) == 3)
+//        {
+//            TCHAR szInput[512];
+//            GetWindowText(hEdit, szInput, 512); // 입력창 텍스트 가져오기
+//
+//            if (_tcslen(szInput) > 0)
+//            {
+//                // 저장해둔 매니저 포인터 꺼내기
+//                ClientManager* pMgr = (ClientManager*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+//
+//                // TCHAR를 std::string으로 변환하여 전송 (프로젝트 설정이 Unicode인 경우 고려)
+//#ifdef UNICODE
+//                std::wstring wstr(szInput);
+//                std::string str(wstr.begin(), wstr.end());
+//                pMgr->TrySendMessage(str);
+//#else
+//                pMgr->TrySendMessage(szInput);
+//#endif
+//                SetWindowText(hEdit, _T("")); // 입력창 비우기
+//            }
+//        }
+//        break;
+
     case WM_COMMAND:
-        // 버튼 클릭 이벤트 (ID가 3인 버튼)
-        if (LOWORD(wParam) == 3)
+        if (LOWORD(wParam) == 3) // 전송 버튼 ID
         {
-            TCHAR szInput[512];
-            GetWindowText(hEdit, szInput, 512); // 입력창 텍스트 가져오기
-
-            if (_tcslen(szInput) > 0)
+            // 1. 필요한 글자 수를 먼저 파악 (ANSI 버전 함수 호출)
+            int len = GetWindowTextLengthA(hEdit);
+            if (len > 0)
             {
-                // 저장해둔 매니저 포인터 꺼내기
-                ClientManager* pMgr = (ClientManager*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+                // 2. std::string에 공간을 미리 확보
+                std::string sendBuffer(len, '\0');
 
-                // TCHAR를 std::string으로 변환하여 전송 (프로젝트 설정이 Unicode인 경우 고려)
-#ifdef UNICODE
-                std::wstring wstr(szInput);
-                std::string str(wstr.begin(), wstr.end());
-                pMgr->TrySendMessage(str);
-#else
-                pMgr->TrySendMessage(szInput);
-#endif
+                // 3. std::string 내부 메모리에 직접 ANSI 문자열을 채움
+                // &sendBuffer[0]을 통해 내부 힙 메모리 주소에 직접 접근
+                GetWindowTextA(hEdit, &sendBuffer[0], len + 1);
+
+                // 4. 전송
+                ClientManager* pMgr = (ClientManager*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+                pMgr->TrySendMessage(sendBuffer);
+
                 SetWindowText(hEdit, _T("")); // 입력창 비우기
             }
         }
         break;
-
 
     case WM_PAINT:
     {
@@ -148,19 +170,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     break;
 
 
-    // 서버로부터 데이터가 수신되었을 때의 처리 (예: 채팅 메시지 표시)
+    // 서버로부터 데이터가 수신되었을 때의 처리
     case WM_RECV_DATA:
     {
         ClientManager* clientManager = reinterpret_cast<ClientManager*>(lParam);
         if (clientManager != nullptr)
         {
             std::string message = clientManager->GetRecvMessage();
-            SendMessage(hListBox, LB_ADDSTRING, 0, (LPARAM)message.c_str());
+            SendMessageA(hListBox, LB_ADDSTRING, 0, (LPARAM)message.c_str());
         }
     }
     break;
-
-
 
     case WM_DESTROY:
         // 프로그램 종료 처리

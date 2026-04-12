@@ -8,8 +8,11 @@
 int main()
 {
 	ServerManager serverManager;
-	if (serverManager.TryStart(DEFAULT_PORT) == NetInitResult::Complete);
+	if (serverManager.TryStart(DEFAULT_PORT) == NetInitResult::Complete)
+	{
+		// 계속 유지
+		while (serverManager.IsRunning()) {}
+	}
 
-	// 계속 유지
-	while (serverManager.IsRunning()) {}
+	return 0;
 }
