@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "NetworkBase.h"
+#include "INetSignal.h"
 
 
 // 할당받은 소켓으로 1:1 통신만을 전담하는 클래스

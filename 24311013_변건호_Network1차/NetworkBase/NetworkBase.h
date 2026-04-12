@@ -5,7 +5,6 @@
 #include <windows.h>
 
 #include "INetInitialize.h"
-#include "INetSignal.h"
 
 
 class NetworkBase : public INetInitialize
