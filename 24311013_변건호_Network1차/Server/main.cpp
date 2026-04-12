@@ -58,7 +58,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
     // --- [여기서부터 테스트 코드 삽입] ---
     // 1. 서버 생성 (9000번 포트)
-    ServerBase server(9000);
+    ServerBase server(DEFAULT_PORT);
     if (server.NetInitialize() == NetInitResult::Complete)
     {
         // 2. 클라이언트 접속 수락 (접속할 때까지 여기서 멈춤)

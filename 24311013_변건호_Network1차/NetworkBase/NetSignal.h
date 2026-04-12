@@ -9,6 +9,11 @@ protected:
 	// 연결된 소켓
 	SOCKET m_hSocket;
 
+private:
+	// 복사 금지
+	NetSignal(const NetSignal&) = delete;
+	NetSignal& operator=(const NetSignal&) = delete;
+
 public:
 	NetSignal(SOCKET hSocket);
 	virtual ~NetSignal() override;

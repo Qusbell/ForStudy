@@ -62,7 +62,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
     // --- [여기서부터 테스트 코드 삽입] ---
     // 1. 클라이언트 생성 (자기 자신 IP: 127.0.0.1)
-    ClientBase client("127.0.0.1", 9000);
+    ClientBase client(DEFAULT_IP, DEFAULT_PORT);
     if (client.NetInitialize() == NetInitResult::Complete)
     {
         // 2. 부모(NetworkBase)의 소켓을 가져와 통신 객체 생성
