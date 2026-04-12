@@ -125,12 +125,14 @@
   <ItemGroup>
     <ClInclude Include="IServerInitialize.h" />
     <ClInclude Include="ServerBase.h" />
+    <ClInclude Include="ServerManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\NetworkBase\NetSignal.cpp" />
     <ClCompile Include="..\NetworkBase\NetworkBase.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ServerBase.cpp" />
+    <ClCompile Include="ServerManager.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
