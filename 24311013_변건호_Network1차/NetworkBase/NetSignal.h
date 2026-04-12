@@ -13,6 +13,6 @@ public:
 	NetSignal(SOCKET hSocket);
 	virtual ~NetSignal() = default;
 
-	virtual int TrySend(const char* buffer) override;
-	virtual int TryRecv(char* buffer) override;
+	virtual int TrySend(const std::string& buffer) override;
+	virtual int TryRecv(std::string& buffer) override;
 };
