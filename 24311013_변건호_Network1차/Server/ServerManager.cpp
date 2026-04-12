@@ -11,6 +11,8 @@ ServerManager::ServerManager(unsigned short port)
 
 ServerManager::~ServerManager()
 {
+	m_isRunning = false;
+
 	delete m_server;
 
 	// NetSignal 객체들도 모두 삭제
@@ -19,8 +21,6 @@ ServerManager::~ServerManager()
 		if (signal != nullptr)
 		{ delete signal; }
 	}
-
-	m_isRunning = false;
 
 	DeleteCriticalSection(&m_signalsLock);
 }
@@ -78,14 +78,15 @@ void ServerManager::RecvThread(NetSignal* signal)
 			// 받은 메시지를 모든 클라이언트에게 브로드캐스트
 			Broadcast(recvBuffer);
 		}
-		else
-		{
-			// 연결 종료 또는 오류 발생 시 해당 신호 제거
-			break;
-		}
+		else { break; }
 	}
 
-	delete signal; // NetSignal 객체 삭제
+	// 연결 종료 또는 오류 발생 시 해당 신호 제거
+	EnterCriticalSection(&m_signalsLock);
+	m_signals.erase(std::remove(m_signals.begin(), m_signals.end(), signal), m_signals.end());
+	LeaveCriticalSection(&m_signalsLock);
+
+	delete signal;
 }
 
 
@@ -93,10 +94,7 @@ void ServerManager::Broadcast(const std::string& message)
 {
 	EnterCriticalSection(&m_signalsLock);
 
-	// 1. 유효하지 않은(nullptr) 신호들을 먼저 리스트에서 완전히 제거 (반복문 밖에서 수행)
-	m_signals.erase(std::remove(m_signals.begin(), m_signals.end(), nullptr), m_signals.end());
-
-	// 2. 모든 유효한 신호에 메시지 전송 시도
+	// 모든 대상에 메시지 전송 시도
 	for (NetSignal* signal : m_signals)
 	{
 		if (signal != nullptr)
