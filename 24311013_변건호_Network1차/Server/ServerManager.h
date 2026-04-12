@@ -25,12 +25,12 @@ private:
 	ServerManager& operator=(const ServerManager&) = delete;
 
 public:
-	ServerManager(unsigned short port);
+	ServerManager();
 	~ServerManager();
 
 public:
 	// 서버 시작 시도. 실패 시 실패 원인 반환
-	NetInitResult TryStart();
+	NetInitResult TryStart(unsigned short port);
 
 	// 서버가 실행 중인지 여부 반환
 	inline bool IsRunning() const { return m_isRunning; }

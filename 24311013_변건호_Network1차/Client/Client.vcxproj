@@ -126,10 +126,12 @@
     <ClCompile Include="..\NetworkBase\NetSignal.cpp" />
     <ClCompile Include="..\NetworkBase\NetworkBase.cpp" />
     <ClCompile Include="ClientBase.cpp" />
+    <ClCompile Include="ClientManager.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClientBase.h" />
+    <ClInclude Include="ClientManager.h" />
     <ClInclude Include="IInitialize.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

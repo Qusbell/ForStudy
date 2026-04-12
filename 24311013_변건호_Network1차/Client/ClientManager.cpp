@@ -1,22 +1,11 @@
 ﻿#include "ClientManager.h"
 
-ClientManager::ClientManager(const std::string& ip, unsigned short port)
-{
-	// 1. 클라이언트 객체 생성
-	m_client = new ClientBase(ip, port);
-
-	// 2. 클라이언트 초기화 시도
-	NetInitResult result = m_client->NetInitialize();
-	if (result != NetInitResult::Complete)
-	{
-		// 초기화 실패 시 예외 처리 (여기서는 간단히 콘솔 출력)
-		delete m_client; // 할당된 메모리 해제
-		m_client = nullptr;
-		m_isRunning = false;
-		return;
-	}
-	m_isRunning = true; // 초기화 성공 시 실행 상태로 설정
-}
+ClientManager::ClientManager(const HWND hMainWnd) :
+	m_client(nullptr),
+	m_hMainWnd(hMainWnd),
+	m_signal(nullptr),
+	m_isRunning(false)
+{}
 
 
 ClientManager::~ClientManager()
@@ -28,21 +17,41 @@ ClientManager::~ClientManager()
 		delete m_client;
 		m_client = nullptr;
 	}
+
+	if(m_signal != nullptr)
+	{
+		delete m_signal;
+		m_signal = nullptr;
+	}
 }
 
-NetInitResult ClientManager::TryStart()
+NetInitResult ClientManager::TryStart(const std::string& ip, unsigned short port)
 {
-	NetInitResult result = GetClient().NetInitialize();
+	// 1. 이미 클라이언트가 실행 중인 경우, 바로 Complete 반환
+	if (m_isRunning) { return NetInitResult::Complete; }
 
+	// 2. 클라이언트 객체 생성 및 초기화
+	m_client = new ClientBase(ip, port);
+	auto result = GetClient().NetInitialize();
+
+	// 3. 초기화 결과에 따라 처리
 	if (result == NetInitResult::Complete)
 	{
 		m_isRunning = true;
 		SOCKET socket = GetClient().GetSocket();
+		m_signal = new NetSignal(socket);
 
 		// <-- recv 쓰레드 시작
 
 		// <-- send 쓰레드 시작
 	}
+	// 초기화 실패 시, 클라이언트 객체 정리
+	else
+	{
+		delete m_client;
+		m_client = nullptr;
+	}
 
+	// 4. 초기화 결과 반환
 	return result;
 }

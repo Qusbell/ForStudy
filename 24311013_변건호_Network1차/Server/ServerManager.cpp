@@ -1,10 +1,9 @@
 ﻿#include "ServerManager.h"
 
-ServerManager::ServerManager(unsigned short port)
+ServerManager::ServerManager() :
+	m_server(nullptr),
+	m_isRunning(false)
 {
-	m_server = new ServerBase(port);
-	m_isRunning = false;
-
 	// 크리티컬 섹션 초기화
 	InitializeCriticalSection(&m_signalsLock);
 }
@@ -31,10 +30,16 @@ ServerManager::~ServerManager()
 }
 
 
-NetInitResult ServerManager::TryStart()
+NetInitResult ServerManager::TryStart(unsigned short port)
 {
+	// 1. 이미 서버가 실행 중인 경우, 바로 Complete 반환
+	if (m_isRunning) { return NetInitResult::Complete; }
+
+	// 2. 서버 객체 생성 및 초기화 시도
+	m_server = new ServerBase(port);
 	auto result = GetServer().NetInitialize();
 
+	// 3. 초기화 결과에 따라 서버 실행 여부 결정
 	if (result == NetInitResult::Complete)
 	{
 		m_isRunning = true;
@@ -43,7 +48,14 @@ NetInitResult ServerManager::TryStart()
 		std::thread acceptThread(&ServerManager::AcceptThread, this);
 		acceptThread.detach();
 	}
+	// 초기화 실패 시, 생성한 서버 객체 삭제
+	else
+	{
+		delete m_server;
+		m_server = nullptr;
+	}
 
+	// 4. 초기화 결과 반환
 	return result;
 }
 

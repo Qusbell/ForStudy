@@ -60,9 +60,9 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     // --- [여기서부터 테스트 코드 삽입] ---
     // 1. 서버 생성 (9000번 포트)
 
-	ServerManager serverManager(DEFAULT_PORT);
+	ServerManager serverManager;
 
-    if (serverManager.TryStart() == NetInitResult::Complete)
+    if (serverManager.TryStart(DEFAULT_PORT) == NetInitResult::Complete)
     {
         MessageBoxA(hWnd, "Server started successfully!", "Network Test", MB_OK);
     }
