@@ -36,14 +36,13 @@ public:
 	inline bool IsRunning() const { return m_isRunning; }
 
 private:
-
-	// 서버가 실행 중일 때, 클라이언트의 연결 요청을 수락하는 루프
+	// 서버가 실행 중일 때, 클라이언트의 연결 요청을 수락하는 루프 (단일)
 	void AcceptThread();
 
+	// 각 담당 클라이언트 소켓마다 할당되는 쓰레드 (다수)
 	void RecvThread(NetSignal* signal);
 
 	void Broadcast(const std::string& message);
-
 
 private:
 	void RegisterSignal(NetSignal* newSignal);

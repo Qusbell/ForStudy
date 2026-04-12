@@ -55,3 +55,17 @@ NetInitResult ClientManager::TryStart(const std::string& ip, unsigned short port
 	// 4. 초기화 결과 반환
 	return result;
 }
+
+
+void ClientManager::RecvThread()
+{
+	while (m_isRunning)
+	{
+		std::string recvBuffer;
+		if (0 < m_signal->TryRecv(recvBuffer)) {
+			//std::string* pMsg = new std::string(recvBuffer);
+			PostMessage(m_hMainWnd, WM_RECV_DATA, 0, (LPARAM)&recvBuffer);
+		}
+		else { break; }
+	}
+}

@@ -3,6 +3,8 @@
 #include "ClientBase.h"
 #include <thread>
 
+// 사용자 정의 메시지: 데이터 수신 알림
+#define WM_RECV_DATA (WM_USER + 1)
 
 
 class ClientManager
@@ -26,6 +28,10 @@ public:
 	~ClientManager();
 
 	NetInitResult TryStart(const std::string& ip, unsigned short port);
+
+private:
+
+	void RecvThread();
 
 };
 
