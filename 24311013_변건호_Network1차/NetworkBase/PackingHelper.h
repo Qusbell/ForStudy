@@ -10,6 +10,11 @@ namespace PackingHelper
 	void Packing_Header(PacketHeader& header, const PacketType type, const uint16_t sizeofPacket);
 	void Packing_CharArr(char* packetArr, const int arrSize, const std::string& packingTarget);
 
+	bool IsValidPacket(const PacketHeader& header, const PacketType type);
+	uint16_t GetPacketSize(const PacketType type);
+
+	std::string SafeGetString(const char* arr, const int maxSize);
+
 
 	//=== Packing «Ô∆€ ===//
 
@@ -17,12 +22,6 @@ namespace PackingHelper
 	void Packing_AssignID(PacketAssignID& packet, const int ID);
 	bool Packeting_RequestChat(PacketRequestChat& packet, const std::string& chat);
 	bool Packing_BroadcastChat(PacketBroadcastChat& packet, const std::string& name, const std::string& chat);
-
-
-	//=== ≥ª∫Œ æ»¿¸ √ﬂ√‚ «Ô∆€ ===//
-
-	std::string SafeGetString(const char* arr, const int maxSize);
-	bool IsValidPacket(const PacketHeader& header, const PacketType type);
 
 
 	//=== Unpack «Ô∆€ ===//

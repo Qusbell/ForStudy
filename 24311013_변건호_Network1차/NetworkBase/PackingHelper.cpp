@@ -19,6 +19,58 @@ void PackingHelper::Packing_CharArr(char* packetArr, const int arrSize, const st
 	packingTarget.copy(packetArr, copyLength);
 }
 
+
+std::string PackingHelper::SafeGetString(const char* arr, const int maxSize)
+{
+	// 널 문자가 없어도 maxSize까지만 읽도록 강제하여 메모리 오버플로우 방지
+	size_t len = strnlen(arr, maxSize);
+	return std::string(arr, len);
+}
+
+
+bool PackingHelper::IsValidPacket(const PacketHeader& header, const PacketType type)
+{
+	bool isMagicValid = header.magic == PACKET_MAGIC;
+	bool isTypeValid = header.type == type;
+	bool isSizeValid = header.size == GetPacketSize(type);
+
+	return isMagicValid && isTypeValid && isSizeValid;
+}
+
+
+uint16_t PackingHelper::GetPacketSize(const PacketType type)
+{
+	uint16_t size = 0;
+
+	switch (type)
+	{
+	case PacketType::ON_CONNECT:
+		size = sizeof(PacketOnConnect);
+		break;
+
+	case PacketType::ASSIGN_ID:
+		size = sizeof(PacketAssignID);
+		break;
+
+	case PacketType::REQUEST_CHAT:
+		size = sizeof(PacketRequestChat);
+		break;
+
+	case PacketType::BROADCAST_CHAT:
+		size = sizeof(PacketBroadcastChat);
+		break;
+
+	default:
+		break;
+	}
+
+	return size;
+}
+
+
+
+//=== Packing 헬퍼 구현 ===//
+
 bool PackingHelper::Packing_OnConnect(PacketOnConnect& packet, const std::string& name)
 {
 	if (name.empty()) { return false; }
@@ -56,47 +108,6 @@ bool PackingHelper::Packing_BroadcastChat(PacketBroadcastChat& packet, const std
 	return true;
 }
 
-
-
-//=== 내부 안전 추출 헬퍼 구현 ===//
-std::string PackingHelper::SafeGetString(const char* arr, const int maxSize)
-{
-	// 널 문자가 없어도 maxSize까지만 읽도록 강제하여 메모리 오버플로우 방지
-	size_t len = strnlen(arr, maxSize);
-	return std::string(arr, len);
-}
-
-bool PackingHelper::IsValidPacket(const PacketHeader& header, const PacketType type)
-{
-	bool isMagicValid = header.magic == PACKET_MAGIC;
-	bool isTypeValid = header.type == type;
-	bool isSizeValid = false;
-
-	switch (type)
-	{
-	case PacketType::ON_CONNECT:
-		isSizeValid == sizeof(PacketOnConnect);
-		break;
-		
-	case PacketType::ASSIGN_ID:
-		isSizeValid == sizeof(PacketAssignID);
-		break;
-
-	case PacketType::REQUEST_CHAT:
-		isSizeValid = sizeof(PacketRequestChat);
-		break;
-
-	case PacketType::BROADCAST_CHAT:
-		isSizeValid = sizeof(PacketBroadcastChat);
-		break;
-
-	default:
-		isSizeValid = false;
-		break;
-	}
-
-	return isMagicValid && isTypeValid && isSizeValid;
-}
 
 //=== Unpack 헬퍼 구현 ===//
 
