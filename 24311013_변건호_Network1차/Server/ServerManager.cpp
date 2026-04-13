@@ -1,11 +1,12 @@
 ﻿#include "ServerManager.h"
+#include <algorithm>
 
 ServerManager::ServerManager() :
 	m_server(nullptr),
 	m_isRunning(false)
 {
 	// 크리티컬 섹션 초기화
-	InitializeCriticalSection(&m_signalsLock);
+	InitializeCriticalSection(&m_sessionsLock);
 }
 
 ServerManager::~ServerManager()
@@ -18,17 +19,19 @@ ServerManager::~ServerManager()
 		m_server = nullptr;
 	}
 
-	// NetSignal 객체들도 모두 삭제
-	for (NetSignal* signal : m_signals)
+	// 모든 세션 메모리 해제
+	for (ClientSession* session : m_sessions)
 	{
-		if (signal != nullptr)
-		{ delete signal; }
+		if (session != nullptr)
+		{
+			if (session->signal != nullptr) delete session->signal;
+			delete session;
+		}
 	}
 
 	// 크리티컬 섹션 삭제
-	DeleteCriticalSection(&m_signalsLock);
+	DeleteCriticalSection(&m_sessionsLock);
 }
-
 
 NetInitResult ServerManager::TryStart(unsigned short port)
 {
@@ -59,77 +62,111 @@ NetInitResult ServerManager::TryStart(unsigned short port)
 	return result;
 }
 
-
 void ServerManager::AcceptThread()
 {
 	while (m_isRunning)
 	{
 		SOCKET hClient = GetServer().TryAccept();
 
-		if(hClient != INVALID_SOCKET)
+		if (hClient != INVALID_SOCKET)
 		{
-			// 새로운 클라이언트 연결 처리
-			NetSignal* newSignal = new NetSignal(hClient);
+			// ★ [과제 요건]: 소켓을 기반으로 고유 ID 생성 (소켓 핸들을 그대로 ID로 사용)
+			ClientSession* newSession = new ClientSession();
+			newSession->id = static_cast<int>(hClient);
+			newSession->name = "Unknown";
+			newSession->signal = new NetSignal(hClient);
 
-			RegisterSignal(newSignal);
+			RegisterSession(newSession);
+
+			// 접속한 클라이언트에게 ID 할당 (서버 -> 클라)
+			PacketAssignID assignPkt;
+			PackingHelper::Packing_AssignID(assignPkt, newSession->id);
+			newSession->signal->TrySend(assignPkt.header);
 
 			// 대상 Sinal로부터 recv하는 쓰레드 생성
-			std::thread recvThread(&ServerManager::RecvThread, this, newSignal);
+			std::thread recvThread(&ServerManager::RecvThread, this, newSession);
 			recvThread.detach();
 		}
 	}
 }
 
-
-void ServerManager::RecvThread(NetSignal* signal)
+void ServerManager::RecvThread(ClientSession* session)
 {
-	NetSignal& threadSignal = *signal;
-
 	while (m_isRunning)
 	{
-		std::string recvBuffer;
-		if (0 < threadSignal.TryRecv(recvBuffer))
-		{
-			// 받은 메시지를 모든 클라이언트에게 브로드캐스트
-			Broadcast(recvBuffer);
-		}
-		else { break; }
+		// NetRunner 기반 콜백으로 패킷 처리
+		int recvBytes = session->signal->TryRecv([this, session](char* packetData) {
+
+			PacketHeader* header = (PacketHeader*)packetData;
+
+			switch (header->type)
+			{
+			case PacketType::ON_CONNECT:
+			{
+				std::string name;
+				if (PackingHelper::Unpack_OnConnect(packetData, name))
+				{
+					// 클라이언트가 보낸 이름 저장
+					session->name = name;
+				}
+				break;
+			}
+			case PacketType::REQUEST_CHAT:
+			{
+				std::string chatMsg;
+				if (PackingHelper::Unpack_RequestChat(packetData, chatMsg))
+				{
+					// ★ [과제 요건]: 서버가 클라이언트 이름과 메시지를 합쳐서 브로드캐스트
+					PacketBroadcastChat broadcastPkt;
+					if (PackingHelper::Packing_BroadcastChat(broadcastPkt, session->name, chatMsg))
+					{
+						Broadcast(broadcastPkt.header);
+					}
+				}
+				break;
+			}
+			default:
+				break;
+			}
+
+			});
+
+		// 통신 종료 또는 오류
+		if (recvBytes <= 0) { break; }
 	}
 
-	// 연결 종료 또는 오류 발생 시 해당 신호 제거
-	UnregisterSignal(signal);
-
-	delete signal;
+	// 연결 종료 또는 오류 발생 시 해당 세션 제거
+	UnregisterSession(session);
+	delete session->signal;
+	delete session;
 }
 
-
-void ServerManager::Broadcast(const std::string& message)
+void ServerManager::Broadcast(const PacketHeader& packet)
 {
-	EnterCriticalSection(&m_signalsLock);
+	EnterCriticalSection(&m_sessionsLock);
 
-	// 모든 대상에 메시지 전송 시도
-	for (NetSignal* signal : m_signals)
+	// 모든 대상에 패킷 전송 시도
+	for (ClientSession* session : m_sessions)
 	{
-		if (signal != nullptr)
+		if (session != nullptr && session->signal != nullptr)
 		{
-			signal->TrySend(message);
+			session->signal->TrySend(packet);
 		}
 	}
 
-	LeaveCriticalSection(&m_signalsLock);
+	LeaveCriticalSection(&m_sessionsLock);
 }
 
-
-void ServerManager::RegisterSignal(NetSignal* newSignal)
+void ServerManager::RegisterSession(ClientSession* newSession)
 {
-	EnterCriticalSection(&m_signalsLock);
-	m_signals.push_back(newSignal);
-	LeaveCriticalSection(&m_signalsLock);
+	EnterCriticalSection(&m_sessionsLock);
+	m_sessions.push_back(newSession);
+	LeaveCriticalSection(&m_sessionsLock);
 }
 
-void ServerManager::UnregisterSignal(NetSignal* signal)
+void ServerManager::UnregisterSession(ClientSession* session)
 {
-	EnterCriticalSection(&m_signalsLock);
-	m_signals.erase(std::remove(m_signals.begin(), m_signals.end(), signal), m_signals.end());
-	LeaveCriticalSection(&m_signalsLock);
+	EnterCriticalSection(&m_sessionsLock);
+	m_sessions.erase(std::remove(m_sessions.begin(), m_sessions.end(), session), m_sessions.end());
+	LeaveCriticalSection(&m_sessionsLock);
 }

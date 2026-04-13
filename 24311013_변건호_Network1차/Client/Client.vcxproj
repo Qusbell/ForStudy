@@ -123,8 +123,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\NetworkBase\NetRunner.cpp" />
     <ClCompile Include="..\NetworkBase\NetSignal.cpp" />
     <ClCompile Include="..\NetworkBase\NetworkBase.cpp" />
+    <ClCompile Include="..\NetworkBase\PackingHelper.cpp" />
     <ClCompile Include="ClientBase.cpp" />
     <ClCompile Include="ClientManager.cpp" />
     <ClCompile Include="main.cpp" />

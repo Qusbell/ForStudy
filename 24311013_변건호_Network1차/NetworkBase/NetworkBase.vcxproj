@@ -132,7 +132,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NetInitResult.h" />
-    <ClCompile Include="NetSender.cpp" />
+    <ClCompile Include="NetRunner.cpp" />
     <ClCompile Include="NetSignal.cpp" />
     <ClCompile Include="NetworkBase.cpp" />
     <ClCompile Include="PacketHeader.h" />

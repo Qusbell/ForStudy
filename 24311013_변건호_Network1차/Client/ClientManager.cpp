@@ -1,4 +1,5 @@
 ﻿#include "ClientManager.h"
+#include <string>
 
 ClientManager::ClientManager(const HWND hMainWnd) :
 	m_client(nullptr),
@@ -8,7 +9,6 @@ ClientManager::ClientManager(const HWND hMainWnd) :
 {
 	InitializeCriticalSection(&m_recvQueueLock);
 }
-
 
 ClientManager::~ClientManager()
 {
@@ -20,7 +20,7 @@ ClientManager::~ClientManager()
 		m_client = nullptr;
 	}
 
-	if(m_signal != nullptr)
+	if (m_signal != nullptr)
 	{
 		delete m_signal;
 		m_signal = nullptr;
@@ -45,11 +45,15 @@ NetInitResult ClientManager::TryStart(const std::string& ip, unsigned short port
 		SOCKET socket = GetClient().GetSocket();
 		m_signal = new NetSignal(socket);
 
+		// ★ [과제 요건]: 서버에 접속 성공하면 자신의 이름을 패킷으로 전송
+		std::string myName = "User_" + std::to_string((int)socket); // 임시로 소켓 번호를 이름으로 사용
+		PacketOnConnect connectPkt;
+		PackingHelper::Packing_OnConnect(connectPkt, myName);
+		m_signal->TrySend(connectPkt.header);
+
 		// recv 쓰레드 시작
 		std::thread recvThread(&ClientManager::RecvThread, this);
 		recvThread.detach();
-
-		// <-- TODO : send 쓰레드 시작
 	}
 	// 초기화 실패 시, 클라이언트 객체 정리
 	else
@@ -62,14 +66,13 @@ NetInitResult ClientManager::TryStart(const std::string& ip, unsigned short port
 	return result;
 }
 
-
 const std::string ClientManager::GetRecvMessage()
 {
 	std::string message;
 
 	EnterCriticalSection(&m_recvQueueLock);
 	if (m_recvQueue.empty())
-	{ 
+	{
 		message = "";
 	}
 	else
@@ -82,29 +85,62 @@ const std::string ClientManager::GetRecvMessage()
 	return message;
 }
 
-
 void ClientManager::RecvThread()
 {
 	while (m_isRunning)
 	{
-		std::string recvBuffer;
+		// NetRunner를 통해 패킷이 완전하게 조립되었을 때 실행될 람다(콜백)
+		int recvBytes = m_signal->TryRecv([this](char* packetData) {
 
-		if (0 < m_signal->TryRecv(recvBuffer))
-		{
-			EnterCriticalSection(&m_recvQueueLock);
-			m_recvQueue.push(recvBuffer);
-			LeaveCriticalSection(&m_recvQueueLock);
+			PacketHeader* header = (PacketHeader*)packetData;
 
-			PostMessage(m_hMainWnd, WM_RECV_DATA, 0, (LPARAM)this);
-		}
-		else { break; }
+			switch (header->type)
+			{
+			case PacketType::ASSIGN_ID:
+			{
+				int myId = 0;
+				if (PackingHelper::Unpack_AssignID(packetData, myId))
+				{
+					// ID 부여받음. 필요 시 콘솔 출력이나 UI 처리
+				}
+				break;
+			}
+			case PacketType::BROADCAST_CHAT:
+			{
+				std::string name, chat;
+				if (PackingHelper::Unpack_BroadcastChat(packetData, name, chat))
+				{
+					// "[이름] 채팅내용" 형태로 포매팅
+					std::string displayStr = "[" + name + "] " + chat;
+
+					EnterCriticalSection(&m_recvQueueLock);
+					m_recvQueue.push(displayStr);
+					LeaveCriticalSection(&m_recvQueueLock);
+
+					// UI 갱신 요청
+					PostMessage(m_hMainWnd, WM_RECV_DATA, 0, (LPARAM)this);
+				}
+				break;
+			}
+			default:
+				break;
+			}
+			});
+
+		// 상대방이 종료했거나 오류 발생 시 루프 탈출
+		if (recvBytes <= 0) { break; }
 	}
 }
 
 void ClientManager::TrySendChat(const std::string& message)
 {
-	if (m_isRunning)
+	if (m_isRunning && m_signal != nullptr)
 	{
-		m_signal->TrySend(message);
+		PacketRequestChat chatPkt;
+		if (PackingHelper::Packeting_RequestChat(chatPkt, message))
+		{
+			// 패킷 헤더 주소를 넘기면 메모리 연속성으로 전체가 전송됨
+			m_signal->TrySend(chatPkt.header);
+		}
 	}
 }

@@ -31,9 +31,9 @@ struct PacketHeader
 	// 패킷 키
 	uint32_t magic = PACKET_MAGIC;
 	// 패킷 총 사이즈
-	uint16_t size;
+	uint16_t size = 0;
 	// 패킷의 종류 (맥락)
-	PacketType type;
+	PacketType type = PacketType::NONE;
 };
 #pragma pack(pop)
 

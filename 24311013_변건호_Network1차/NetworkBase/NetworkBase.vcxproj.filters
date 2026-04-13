@@ -50,7 +50,7 @@
     <ClCompile Include="PackingHelper.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="NetSender.cpp">
+    <ClCompile Include="NetRunner.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
