@@ -1,12 +1,17 @@
 ﻿#pragma once
 
+#include <cstdint>
+
 #define PACKET_MAGIC 0x50434B54 // 'PCKT'
 
+#define NAME_MAX_SIZE 20
+#define CHAT_MAX_SIZE 256
 
-enum class PacketType : int
+
+enum class PacketType : uint32_t
 {
 	//=== 초기화 ===//
-	On_CONNECT = 1, // 클라 --> 서버 : name 알려줌
+	ON_CONNECT = 1, // 클라 --> 서버 : name 알려줌
 	ASSIGN_ID,      // 서버 --> 클라 : ID 부여
 
 	//=== 클라 --> 서버 ===//
@@ -21,9 +26,9 @@ enum class PacketType : int
 struct PacketHeader
 {
 	// 패킷 키
-	int magic = PACKET_MAGIC;
+	uint32_t magic = PACKET_MAGIC;
 	// 패킷 총 사이즈
-	int size;
+	uint16_t size;
 	// 패킷의 종류 (맥락)
 	PacketType type;
 };
@@ -35,7 +40,7 @@ struct PacketHeader
 struct PacketOnConnect
 {
 	PacketHeader header;
-	char name[20];
+	char name[NAME_MAX_SIZE];
 };
 #pragma pack(pop)
 
@@ -50,23 +55,20 @@ struct PacketAssignID
 #pragma pack(pop)
 
 
-
 #pragma pack(push, 1)
 struct PacketRequestChat
 {
 	PacketHeader header;
-	char chat[512];
-	// std::string chat; // <-- 이건 가변형이라 안 되나?
+	char chat[CHAT_MAX_SIZE];
 };
 #pragma pack(pop)
 
 
-
 #pragma pack(push, 1)
-struct PacketBoradcastChat
+struct PacketBroadcastChat
 {
 	PacketHeader header;
-	char name[20];
-	char chat[512];
+	char name[NAME_MAX_SIZE];
+	char chat[CHAT_MAX_SIZE];
 };
 #pragma pack(pop)
