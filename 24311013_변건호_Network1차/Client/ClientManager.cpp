@@ -29,7 +29,7 @@ ClientManager::~ClientManager()
 	DeleteCriticalSection(&m_recvQueueLock);
 }
 
-NetInitResult ClientManager::TryStart(const std::string& ip, unsigned short port)
+NetInitResult ClientManager::TryStart(const std::string& ip, unsigned short port, const std::string& name)
 {
 	// 1. 이미 클라이언트가 실행 중인 경우, 바로 Complete 반환
 	if (m_isRunning) { return NetInitResult::Complete; }
@@ -45,10 +45,9 @@ NetInitResult ClientManager::TryStart(const std::string& ip, unsigned short port
 		SOCKET socket = GetClient().GetSocket();
 		m_signal = new NetSignal(socket);
 
-		// ★ [과제 요건]: 서버에 접속 성공하면 자신의 이름을 패킷으로 전송
-		std::string myName = "User_" + std::to_string((int)socket); // 임시로 소켓 번호를 이름으로 사용
+		// ★ [과제 요건]: 서버에 접속 성공하면 UI에서 받아온 인자(name)를 패킷으로 전송
 		PacketOnConnect connectPkt;
-		PackingHelper::Packing_OnConnect(connectPkt, myName);
+		PackingHelper::Packing_OnConnect(connectPkt, name);
 		m_signal->TrySend(connectPkt.header);
 
 		// recv 쓰레드 시작
@@ -101,7 +100,8 @@ void ClientManager::RecvThread()
 				int myId = 0;
 				if (PackingHelper::Unpack_AssignID(packetData, myId))
 				{
-					// ID 부여받음. 필요 시 콘솔 출력이나 UI 처리
+					// ID 부여받음. 메인 윈도우로 ID 전달 (UI 업데이트 용도)
+					PostMessage(m_hMainWnd, WM_RECV_ID, (WPARAM)myId, 0);
 				}
 				break;
 			}

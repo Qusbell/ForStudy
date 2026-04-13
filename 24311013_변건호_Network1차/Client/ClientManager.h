@@ -3,10 +3,12 @@
 #include "ClientBase.h"
 #include <thread>
 #include <queue>
+#include <string>
 
 // 사용자 정의 메시지: 데이터 수신 알림
 #define WM_RECV_DATA (WM_USER + 1)
-
+// 사용자 정의 메시지: ID 수신 알림
+#define WM_RECV_ID (WM_USER + 2)
 
 class ClientManager
 {
@@ -33,7 +35,8 @@ public:
 	ClientManager(const HWND hMainWnd);
 	~ClientManager();
 
-	NetInitResult TryStart(const std::string& ip, unsigned short port);
+	// 접속 시도 시 UI에서 입력한 이름(name)을 함께 받도록 수정
+	NetInitResult TryStart(const std::string& ip, unsigned short port, const std::string& name);
 
 private:
 
@@ -47,4 +50,3 @@ public:
 
 	const std::string GetRecvMessage();
 };
-
