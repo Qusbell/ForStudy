@@ -23,5 +23,6 @@ public:
 
 	virtual int TrySend(const std::string& buffer) override;
 
+
 	virtual int TryRecv(std::string& buffer) override;
 };

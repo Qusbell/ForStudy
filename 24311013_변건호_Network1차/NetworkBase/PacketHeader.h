@@ -10,6 +10,9 @@
 
 enum class PacketType : uint32_t
 {
+	// 오류
+	NONE = 0,
+
 	//=== 초기화 ===//
 	ON_CONNECT = 1, // 클라 --> 서버 : name 알려줌
 	ASSIGN_ID,      // 서버 --> 클라 : ID 부여

@@ -127,12 +127,14 @@
     <ClInclude Include="INetSignal.h" />
     <ClInclude Include="NetSignal.h" />
     <ClInclude Include="NetworkBase.h" />
+    <ClInclude Include="PackingHelper.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NetInitResult.h" />
     <ClCompile Include="NetSignal.cpp" />
     <ClCompile Include="NetworkBase.cpp" />
     <ClCompile Include="PacketHeader.h" />
+    <ClCompile Include="PackingHelper.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
