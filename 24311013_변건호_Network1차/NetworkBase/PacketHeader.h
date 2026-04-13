@@ -5,18 +5,15 @@
 
 enum class PacketType : int
 {
-	CONNECT = 1,
-	CONNECT_ACK,
+	//=== 초기화 ===//
+	On_CONNECT = 1, // 클라 --> 서버 : name 알려줌
+	ASSIGN_ID,      // 서버 --> 클라 : ID 부여
 
+	//=== 클라 --> 서버 ===//
+	REQUEST_CHAT = 0x1001,  // 채팅 요청
 
-	//=== C to S (Request) ===//
-
-	CHAT = 0x1001,
-
-
-	//=== S to C (Broadcast) ===//
-
-	CHAT_BROADCAST = 0x2001
+	//=== 서버 --> 클라 ===//
+	BROADCAST_CHAT = 0x2001 // 전파
 };
 
 
@@ -33,3 +30,43 @@ struct PacketHeader
 #pragma pack(pop)
 
 
+
+#pragma pack(push, 1)
+struct PacketOnConnect
+{
+	PacketHeader header;
+	char name[20];
+};
+#pragma pack(pop)
+
+
+
+#pragma pack(push, 1)
+struct PacketAssignID
+{
+	PacketHeader header;
+	int ID;
+};
+#pragma pack(pop)
+
+
+
+#pragma pack(push, 1)
+struct PacketRequestChat
+{
+	PacketHeader header;
+	char chat[512];
+	// std::string chat; // <-- 이건 가변형이라 안 되나?
+};
+#pragma pack(pop)
+
+
+
+#pragma pack(push, 1)
+struct PacketBoradcastChat
+{
+	PacketHeader header;
+	char name[20];
+	char chat[512];
+};
+#pragma pack(pop)

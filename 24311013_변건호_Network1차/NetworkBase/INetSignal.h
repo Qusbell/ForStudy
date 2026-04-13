@@ -14,7 +14,7 @@ public:
 
 
 
-	virtual void TrySend(const PacketType type, const std::string& buffer) = 0;
+	//virtual void TrySend(const PacketType type, const std::string& buffer) = 0;
 
 
 
