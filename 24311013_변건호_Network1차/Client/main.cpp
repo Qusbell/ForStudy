@@ -29,8 +29,31 @@ HWND hEditName, hEditId;
 HWND hEditChat, hBtnSend, hBtnExit;
 HWND hListBox;
 
+// Edit 컨트롤의 원래 윈도우 프로시저를 저장할 변수
+WNDPROC EditOriginalProc;
+
 // 함수의 선언 (Forward Declaration)
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+
+// 채팅 입력창 서브클래싱(가로채기) 프로시저: 엔터키 처리용
+LRESULT CALLBACK ChatEditProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    // 엔터키(VK_RETURN)가 눌렸을 때 (명령 처리)
+    if (msg == WM_KEYDOWN && wParam == VK_RETURN)
+    {
+        HWND hParent = GetParent(hWnd);
+        // 메인 윈도우로 "Send 버튼이 눌렸다"는 가짜 메시지 전달
+        SendMessage(hParent, WM_COMMAND, MAKEWPARAM(IDC_BTN_SEND, BN_CLICKED), (LPARAM)hBtnSend);
+        return 0;
+    }
+    // 띠링(Beep) 경고음 방지: 엔터키의 문자 입력 이벤트를 무시
+    else if (msg == WM_CHAR && wParam == VK_RETURN)
+    {
+        return 0;
+    }
+    // 그 외의 키나 메시지는 원래 Edit 컨트롤의 기본 동작 수행
+    return CallWindowProc(EditOriginalProc, hWnd, msg, wParam, lParam);
+}
 
 // 1. WinMain: 프로그램의 시작점
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -112,7 +135,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         // --- Row 2 : Name ---
         CreateWindow(_T("STATIC"), _T("name"), WS_CHILD | WS_VISIBLE | SS_RIGHT | SS_CENTERIMAGE, 10, 45, 80, 25, hWnd, NULL, hInst, NULL);
-        hEditName = CreateWindowEx(WS_EX_CLIENTEDGE, _T("EDIT"), _T("Heesung Oh"), WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, 100, 45, 240, 25, hWnd, (HMENU)IDC_EDIT_NAME, hInst, NULL);
+        hEditName = CreateWindowEx(WS_EX_CLIENTEDGE, _T("EDIT"), _T("Your Name"), WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, 100, 45, 240, 25, hWnd, (HMENU)IDC_EDIT_NAME, hInst, NULL);
 
         // --- Row 3 : ID (Read Only) ---
         CreateWindow(_T("STATIC"), _T("ID"), WS_CHILD | WS_VISIBLE | SS_RIGHT | SS_CENTERIMAGE, 10, 80, 80, 25, hWnd, NULL, hInst, NULL);
@@ -122,6 +145,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         CreateWindow(_T("STATIC"), _T("chat"), WS_CHILD | WS_VISIBLE | SS_RIGHT | SS_CENTERIMAGE, 10, 115, 80, 25, hWnd, NULL, hInst, NULL);
         hEditChat = CreateWindowEx(WS_EX_CLIENTEDGE, _T("EDIT"), _T(""), WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, 100, 115, 240, 25, hWnd, (HMENU)IDC_EDIT_CHAT, hInst, NULL);
         hBtnSend = CreateWindow(_T("BUTTON"), _T("send"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, 350, 115, 100, 25, hWnd, (HMENU)IDC_BTN_SEND, hInst, NULL);
+
+        // ★ 채팅 입력창 서브클래싱 적용 (엔터키 이벤트 가로채기)
+        EditOriginalProc = (WNDPROC)SetWindowLongPtr(hEditChat, GWLP_WNDPROC, (LONG_PTR)ChatEditProc);
 
         // --- Row 5 : Exit Button ---
         hBtnExit = CreateWindow(_T("BUTTON"), _T("종료"), WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, 350, 150, 100, 25, hWnd, (HMENU)IDC_BTN_EXIT, hInst, NULL);
@@ -193,6 +219,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 pMgr->TrySendChat(sendBuffer);
                 SetWindowText(hEditChat, _T("")); // 입력창 비우기
+
+                // 연속 입력을 위해 포커스를 다시 Edit창으로 강제 지정
+                SetFocus(hEditChat);
             }
             break;
         }
