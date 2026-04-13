@@ -153,7 +153,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 // 4. 전송
                 ClientManager* pMgr = (ClientManager*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
-                pMgr->TrySendMessage(sendBuffer);
+                pMgr->TrySendChat(sendBuffer);
 
                 SetWindowText(hEdit, _T("")); // 입력창 비우기
             }

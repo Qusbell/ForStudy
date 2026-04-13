@@ -43,7 +43,7 @@ private:
 
 public:
 	// 서버로 데이터를 전송하는 함수 (비-쓰레드)
-	void TrySendMessage(const std::string& message);
+	void TrySendChat(const std::string& message);
 
 	const std::string GetRecvMessage();
 };

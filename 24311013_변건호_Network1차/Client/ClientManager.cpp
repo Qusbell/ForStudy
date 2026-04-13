@@ -101,7 +101,7 @@ void ClientManager::RecvThread()
 	}
 }
 
-void ClientManager::TrySendMessage(const std::string& message)
+void ClientManager::TrySendChat(const std::string& message)
 {
 	if (m_isRunning)
 	{

@@ -127,10 +127,12 @@
     <ClInclude Include="INetSignal.h" />
     <ClInclude Include="NetSignal.h" />
     <ClInclude Include="NetworkBase.h" />
+    <ClInclude Include="NetRunner.h" />
     <ClInclude Include="PackingHelper.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NetInitResult.h" />
+    <ClCompile Include="NetSender.cpp" />
     <ClCompile Include="NetSignal.cpp" />
     <ClCompile Include="NetworkBase.cpp" />
     <ClCompile Include="PacketHeader.h" />

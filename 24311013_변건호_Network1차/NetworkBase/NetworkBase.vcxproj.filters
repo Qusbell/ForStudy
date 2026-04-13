@@ -30,6 +30,9 @@
     <ClInclude Include="PackingHelper.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="NetRunner.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NetworkBase.cpp">
@@ -45,6 +48,9 @@
       <Filter>헤더 파일</Filter>
     </ClCompile>
     <ClCompile Include="PackingHelper.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="NetSender.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
