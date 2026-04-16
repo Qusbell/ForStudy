@@ -149,6 +149,7 @@
     <ClCompile Include="..\..\Common\GeometryGenerator.cpp" />
     <ClCompile Include="..\..\Common\MathHelper.cpp" />
     <ClCompile Include="FrameResource.cpp" />
+    <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="TreeBillboardsApp.cpp" />
     <ClCompile Include="Waves.cpp" />
   </ItemGroup>
@@ -164,6 +165,7 @@
     <ClInclude Include="FrameResource.h" />
     <ClInclude Include="RenderItem.h" />
     <ClInclude Include="RenderLayer.h" />
+    <ClInclude Include="TextureManager.h" />
     <ClInclude Include="Waves.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

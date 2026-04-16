@@ -9,8 +9,13 @@
 #include "FrameResource.h"
 #include "Waves.h"
 
+// Phase 1
 #include "RenderLayer.h"
 #include "RenderItem.h"
+
+// Phase 2.1
+#include "TextureManager.h"
+
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
@@ -82,7 +87,8 @@ private:
 
 	std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometries;
 	std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
-	std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
+	//std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
+	std::unique_ptr<TextureManager> mTextureManager; // (추가)
 	std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
 	std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> mPSOs;
 
@@ -160,6 +166,7 @@ bool TreeBillboardsApp::Initialize()
 
     mWaves = std::make_unique<Waves>(128, 128, 1.0f, 0.03f, 4.0f, 0.2f);
  
+	mTextureManager = std::make_unique<TextureManager>();
 	LoadTextures();
     BuildRootSignature();
 	BuildDescriptorHeaps();
@@ -504,38 +511,7 @@ void TreeBillboardsApp::UpdateWaves(const GameTimer& gt)
 
 void TreeBillboardsApp::LoadTextures()
 {
-	auto grassTex = std::make_unique<Texture>();
-	grassTex->Name = "grassTex";
-	grassTex->Filename = L"../../Textures/grass.dds";
-	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
-		mCommandList.Get(), grassTex->Filename.c_str(),
-		grassTex->Resource, grassTex->UploadHeap));
-
-	auto waterTex = std::make_unique<Texture>();
-	waterTex->Name = "waterTex";
-	waterTex->Filename = L"../../Textures/water1.dds";
-	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
-		mCommandList.Get(), waterTex->Filename.c_str(),
-		waterTex->Resource, waterTex->UploadHeap));
-
-	auto fenceTex = std::make_unique<Texture>();
-	fenceTex->Name = "fenceTex";
-	fenceTex->Filename = L"../../Textures/WireFence.dds";
-	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
-		mCommandList.Get(), fenceTex->Filename.c_str(),
-		fenceTex->Resource, fenceTex->UploadHeap));
-
-	auto treeArrayTex = std::make_unique<Texture>();
-	treeArrayTex->Name = "treeArrayTex";
-	treeArrayTex->Filename = L"../../Textures/treeArray2.dds";
-	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
-		mCommandList.Get(), treeArrayTex->Filename.c_str(),
-		treeArrayTex->Resource, treeArrayTex->UploadHeap));
-
-	mTextures[grassTex->Name] = std::move(grassTex);
-	mTextures[waterTex->Name] = std::move(waterTex);
-	mTextures[fenceTex->Name] = std::move(fenceTex);
-	mTextures[treeArrayTex->Name] = std::move(treeArrayTex);
+	mTextureManager->LoadTextures(md3dDevice.Get(), mCommandList.Get());
 }
 
 void TreeBillboardsApp::BuildRootSignature()
@@ -594,10 +570,14 @@ void TreeBillboardsApp::BuildDescriptorHeaps()
 	//
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(mSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
-	auto grassTex = mTextures["grassTex"]->Resource;
-	auto waterTex = mTextures["waterTex"]->Resource;
-	auto fenceTex = mTextures["fenceTex"]->Resource;
-	auto treeArrayTex = mTextures["treeArrayTex"]->Resource;
+	// [수정] TextureManager를 통해 참조를 받아옵니다.
+	const auto& textures = mTextureManager->GetTextures();
+
+	// 기존의 mTextures["이름"] 을 textures.at("이름") 으로 바꿉니다.
+	auto grassTex = textures.at("grassTex")->Resource;
+	auto waterTex = textures.at("waterTex")->Resource;
+	auto fenceTex = textures.at("fenceTex")->Resource;
+	auto treeArrayTex = textures.at("treeArrayTex")->Resource;
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
