@@ -7,7 +7,7 @@
 // [Refactoring] 외부 App에 정의된 상수(gNumFrameResources)를 참조하기 위한 선언.
 // RenderItem 초기화에 필수적입니다.
 // ==============================================================================
-extern const int gNumFrameResources;
+extern const int gNumFrameResources = 3;
 
 
 // ==============================================================================
