@@ -19,6 +19,8 @@ using namespace DirectX::PackedVector;
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "D3D12.lib")
 
+const int gNumFrameResources = 3;
+
 
 class TreeBillboardsApp : public D3DApp
 {
