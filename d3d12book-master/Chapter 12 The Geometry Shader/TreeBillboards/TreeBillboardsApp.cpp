@@ -56,7 +56,7 @@ private:
 
 	void LoadTextures();
     void BuildRootSignature();
-	void BuildDescriptorHeaps();
+	//void BuildDescriptorHeaps();
     void BuildShadersAndInputLayouts();
     void BuildLandGeometry();
     void BuildWavesGeometry();
@@ -83,7 +83,7 @@ private:
 
     ComPtr<ID3D12RootSignature> mRootSignature = nullptr;
 
-	ComPtr<ID3D12DescriptorHeap> mSrvDescriptorHeap = nullptr;
+	//ComPtr<ID3D12DescriptorHeap> mSrvDescriptorHeap = nullptr;
 
 	std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometries;
 	std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
@@ -166,10 +166,15 @@ bool TreeBillboardsApp::Initialize()
 
     mWaves = std::make_unique<Waves>(128, 128, 1.0f, 0.03f, 4.0f, 0.2f);
  
+	// [수정] 텍스처 및 SRV 관련 초기화
 	mTextureManager = std::make_unique<TextureManager>();
-	LoadTextures();
+	mTextureManager->LoadTextures(md3dDevice.Get(), mCommandList.Get());
+	mTextureManager->BuildDescriptorHeaps(md3dDevice.Get());
+	mTextureManager->BuildShaderResourceViews(md3dDevice.Get());
+
+	//LoadTextures();
     BuildRootSignature();
-	BuildDescriptorHeaps();
+	//BuildDescriptorHeaps();
     BuildShadersAndInputLayouts();
     BuildLandGeometry();
     BuildWavesGeometry();
@@ -252,7 +257,8 @@ void TreeBillboardsApp::Draw(const GameTimer& gt)
     // Specify the buffers we are going to render to.
     mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
+	// 기존: ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mTextureManager->GetSrvDescriptorHeap() };
 	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
@@ -554,6 +560,8 @@ void TreeBillboardsApp::BuildRootSignature()
         IID_PPV_ARGS(mRootSignature.GetAddressOf())));
 }
 
+
+/*
 void TreeBillboardsApp::BuildDescriptorHeaps()
 {
 	//
@@ -611,6 +619,7 @@ void TreeBillboardsApp::BuildDescriptorHeaps()
 	srvDesc.Texture2DArray.ArraySize = treeArrayTex->GetDesc().DepthOrArraySize;
 	md3dDevice->CreateShaderResourceView(treeArrayTex.Get(), &srvDesc, hDescriptor);
 }
+*/
 
 void TreeBillboardsApp::BuildShadersAndInputLayouts()
 {
@@ -1092,13 +1101,14 @@ void TreeBillboardsApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, cons
         cmdList->IASetIndexBuffer(&ri->Geo->IndexBufferView());
         cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
 
-		CD3DX12_GPU_DESCRIPTOR_HANDLE tex(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-		tex.Offset(ri->Mat->DiffuseSrvHeapIndex, mCbvSrvDescriptorSize);
+		//tex.Offset(ri->Mat->DiffuseSrvHeapIndex, mCbvSrvDescriptorSize);
 
         D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress() + ri->ObjCBIndex*objCBByteSize;
 		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = matCB->GetGPUVirtualAddress() + ri->Mat->MatCBIndex*matCBByteSize;
 
-		cmdList->SetGraphicsRootDescriptorTable(0, tex);
+		// CD3DX12_GPU_DESCRIPTOR_HANDLE tex(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+		// cmdList->SetGraphicsRootDescriptorTable(0, tex);
+		mCommandList->SetGraphicsRootDescriptorTable(0, mTextureManager->GetSrvDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
         cmdList->SetGraphicsRootConstantBufferView(1, objCBAddress);
         cmdList->SetGraphicsRootConstantBufferView(3, matCBAddress);
 
