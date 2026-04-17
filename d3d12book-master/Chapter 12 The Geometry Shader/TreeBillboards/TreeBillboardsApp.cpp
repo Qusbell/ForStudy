@@ -22,6 +22,9 @@
 // Phase 3.1 ~ 3.4
 #include "SceneGeometryBuilder.h"
 
+// Phase 4.1
+#include "PipelineManager.h"
+
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
@@ -61,9 +64,7 @@ private:
 	void UpdateWaves(const GameTimer& gt); 
 
 	//void LoadTextures();
-    void BuildRootSignature();
 	//void BuildDescriptorHeaps();
-    void BuildShadersAndInputLayouts();
     //void BuildLandGeometry();
     //void BuildWavesGeometry();
 	//void BuildBoxGeometry();
@@ -74,7 +75,9 @@ private:
     void BuildRenderItems();
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems);
 
-	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
+	//std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
+	//void BuildRootSignature();
+	//void BuildShadersAndInputLayouts();
 
     float GetHillsHeight(float x, float z)const;
     XMFLOAT3 GetHillsNormal(float x, float z)const;
@@ -88,6 +91,7 @@ private:
     UINT mCbvSrvDescriptorSize = 0;
 
     ComPtr<ID3D12RootSignature> mRootSignature = nullptr;
+	std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
 
 	//ComPtr<ID3D12DescriptorHeap> mSrvDescriptorHeap = nullptr;
 
@@ -96,7 +100,6 @@ private:
 	std::unique_ptr<MaterialManager> mMaterialManager; // (추가)
 	//std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
 	std::unique_ptr<TextureManager> mTextureManager; // (추가)
-	std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
 	std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> mPSOs;
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> mStdInputLayout;

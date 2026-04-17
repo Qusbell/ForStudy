@@ -20,6 +20,6 @@ public:
     // [Phase 3-3] 물결(Waves) 지오메트리 인덱스 버퍼 생성
     static std::unique_ptr<MeshGeometry> BuildWavesGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, class Waves* waves);
 
-    // [Phase 3-4] 나무 빌보드 등 기존 선언된 지오메트리 생성 함수들...
+    // [Phase 3-4] 나무 빌보드 생성 함수
     static std::unique_ptr<MeshGeometry> BuildTreeSpritesGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList);
 };
