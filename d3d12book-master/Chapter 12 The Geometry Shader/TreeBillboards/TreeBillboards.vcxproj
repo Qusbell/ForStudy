@@ -151,6 +151,7 @@
     <ClCompile Include="FrameResource.cpp" />
     <ClCompile Include="MaterialManager.cpp" />
     <ClCompile Include="PipelineManager.cpp" />
+    <ClCompile Include="RenderItemBuilder.cpp" />
     <ClCompile Include="SceneGeometryBuilder.cpp" />
     <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="TreeBillboardsApp.cpp" />
@@ -169,6 +170,7 @@
     <ClInclude Include="MaterialManager.h" />
     <ClInclude Include="PipelineManager.h" />
     <ClInclude Include="RenderItem.h" />
+    <ClInclude Include="RenderItemBuilder.h" />
     <ClInclude Include="RenderLayer.h" />
     <ClInclude Include="SceneGeometryBuilder.h" />
     <ClInclude Include="TextureManager.h" />
