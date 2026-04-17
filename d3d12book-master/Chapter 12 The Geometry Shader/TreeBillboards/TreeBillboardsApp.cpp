@@ -19,6 +19,9 @@
 // Phase 2.3
 #include "MaterialManager.h"
 
+// Phase 3.1
+#include "SceneGeometryBuilder.h"
+
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
