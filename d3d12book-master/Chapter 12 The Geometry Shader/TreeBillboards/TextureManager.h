@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <string>
 #include <memory>
-#include <vector> // [새로 추가됨] 순서를 기억하기 위해 vector 포함
+#include <vector>
 
 class TextureManager
 {
@@ -12,9 +12,6 @@ public:
     // [변경됨] 생성자에서 Device를 한 번만 주입받도록 수정
     TextureManager(ID3D12Device* device);
     ~TextureManager();
-
-    // [변경됨] device 매개변수 제거
-    void LoadTextures(ID3D12GraphicsCommandList* cmdList);
 
     // 단일 텍스처를 로드하고 생성하는 헬퍼 메서드
     void LoadTexture(const std::string& name, const std::wstring& filename, ID3D12GraphicsCommandList* cmdList);

@@ -11,14 +11,6 @@ TextureManager::~TextureManager()
 {
 }
 
-void TextureManager::LoadTextures(ID3D12GraphicsCommandList* cmdList)
-{
-    // [변경됨] device를 더 이상 넘기지 않습니다.
-    LoadTexture("grassTex", L"../../Textures/grass.dds", cmdList);
-    LoadTexture("waterTex", L"../../Textures/water1.dds", cmdList);
-    LoadTexture("fenceTex", L"../../Textures/WireFence.dds", cmdList);
-    LoadTexture("treeArrayTex", L"../../Textures/treeArray2.dds", cmdList);
-}
 
 // 매개변수를 기반으로 Texture 객체를 할당하고, DDS 파일을 로드하여 mTextures 맵에 보관합니다.
 void TextureManager::LoadTexture(const std::string& name, const std::wstring& filename, ID3D12GraphicsCommandList* cmdList)
@@ -92,6 +84,7 @@ void TextureManager::BuildShaderResourceView(const std::string& name, CD3DX12_CP
     // 디스크립터 핸들을 다음 위치로 이동시킵니다.
     hDescriptor.Offset(1, mDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
 }
+
 
 Texture* TextureManager::GetTexture(const std::string& name)
 {

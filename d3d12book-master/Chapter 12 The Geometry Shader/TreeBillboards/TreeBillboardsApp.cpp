@@ -3,7 +3,6 @@
 const int gNumFrameResources = 3;
 
 
-
 TreeBillboardsApp::TreeBillboardsApp(HINSTANCE hInstance)
     : D3DApp(hInstance)
 {
@@ -31,11 +30,13 @@ bool TreeBillboardsApp::Initialize()
  
 
 	// [수정] 텍스처 및 SRV 관련 초기화
-	//LoadTextures();
-	//BuildDescriptorHeaps();
 	mTextureManager = std::make_unique<TextureManager>(md3dDevice.Get());
-	mTextureManager->LoadTextures(mCommandList.Get());
+	mTextureManager->LoadTexture("grassTex", L"../../Textures/grass.dds", mCommandList.Get());
+	mTextureManager->LoadTexture("waterTex", L"../../Textures/water1.dds", mCommandList.Get());
+	mTextureManager->LoadTexture("fenceTex", L"../../Textures/WireFence.dds", mCommandList.Get());
+	mTextureManager->LoadTexture("treeArrayTex", L"../../Textures/treeArray2.dds", mCommandList.Get());
 	mTextureManager->BuildDescriptorHeaps();
+
 
 	//BuildMaterials();
 	mMaterialManager = std::make_unique<MaterialManager>();
