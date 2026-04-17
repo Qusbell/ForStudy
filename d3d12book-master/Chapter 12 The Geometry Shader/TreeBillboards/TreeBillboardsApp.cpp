@@ -69,7 +69,7 @@ private:
     //void BuildWavesGeometry();
 	//void BuildBoxGeometry();
 	//void BuildTreeSpritesGeometry();
-    void BuildPSOs();
+    //void BuildPSOs();
     void BuildFrameResources();
     //void BuildMaterials();
     void BuildRenderItems();
@@ -216,7 +216,9 @@ bool TreeBillboardsApp::Initialize()
 
     BuildRenderItems();
     BuildFrameResources();
-    BuildPSOs();
+
+    //BuildPSOs();
+	mPipelineManager->BuildPSOs(md3dDevice.Get(), m4xMsaaState, m4xMsaaQuality, BackBufferFormat(), DepthStencilFormat());
 
     // Execute the initialization commands.
     ThrowIfFailed(mCommandList->Close());
@@ -302,14 +304,30 @@ void TreeBillboardsApp::Draw(const GameTimer& gt)
 
     DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
-	mCommandList->SetPipelineState(mPSOs["alphaTested"].Get());
+	// mCommandList->SetPipelineState(mPSOs["alphaTested"].Get());
+	// DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::AlphaTested]);
+	// 
+	// mCommandList->SetPipelineState(mPSOs["treeSprites"].Get());
+	// DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::AlphaTestedTreeSprites]);
+	// 
+	// mCommandList->SetPipelineState(mPSOs["transparent"].Get());
+	// DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Transparent]);
+
+
+	mCommandList->SetPipelineState(mPipelineManager->GetPSO("opaque"));
+	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
+
+	mCommandList->SetPipelineState(mPipelineManager->GetPSO("alphaTested"));
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::AlphaTested]);
 
-	mCommandList->SetPipelineState(mPSOs["treeSprites"].Get());
+	mCommandList->SetPipelineState(mPipelineManager->GetPSO("treeSprites"));
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::AlphaTestedTreeSprites]);
 
-	mCommandList->SetPipelineState(mPSOs["transparent"].Get());
+	mCommandList->SetPipelineState(mPipelineManager->GetPSO("transparent"));
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Transparent]);
+
+
+
 
     // Indicate a state transition on the resource usage.
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -630,6 +648,7 @@ void TreeBillboardsApp::BuildShadersAndInputLayouts()
 }
 */
 
+/*
 void TreeBillboardsApp::BuildPSOs()
 {
     D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
@@ -722,6 +741,7 @@ void TreeBillboardsApp::BuildPSOs()
 
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&treeSpritePsoDesc, IID_PPV_ARGS(&mPSOs["treeSprites"])));
 }
+*/
 
 void TreeBillboardsApp::BuildFrameResources()
 {
