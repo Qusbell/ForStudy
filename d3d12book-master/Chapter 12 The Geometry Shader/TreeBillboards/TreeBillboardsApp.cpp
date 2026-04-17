@@ -13,8 +13,11 @@
 #include "RenderLayer.h"
 #include "RenderItem.h"
 
-// Phase 2.1
+// Phase 2.1 ~ 2.2
 #include "TextureManager.h"
+
+// Phase 2.3
+#include "MaterialManager.h"
 
 
 using Microsoft::WRL::ComPtr;
@@ -64,7 +67,7 @@ private:
 	void BuildTreeSpritesGeometry();
     void BuildPSOs();
     void BuildFrameResources();
-    void BuildMaterials();
+    //void BuildMaterials();
     void BuildRenderItems();
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems);
 
@@ -86,7 +89,8 @@ private:
 	//ComPtr<ID3D12DescriptorHeap> mSrvDescriptorHeap = nullptr;
 
 	std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometries;
-	std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
+	//std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
+	std::unique_ptr<MaterialManager> mMaterialManager; // (추가)
 	//std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
 	std::unique_ptr<TextureManager> mTextureManager; // (추가)
 	std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
@@ -166,22 +170,26 @@ bool TreeBillboardsApp::Initialize()
 
     mWaves = std::make_unique<Waves>(128, 128, 1.0f, 0.03f, 4.0f, 0.2f);
  
+
 	// [수정] 텍스처 및 SRV 관련 초기화
+	//LoadTextures();
+	//BuildDescriptorHeaps();
 	mTextureManager = std::make_unique<TextureManager>();
 	mTextureManager->BuildDescriptorHeaps(md3dDevice.Get());
 	mTextureManager->LoadTextures(md3dDevice.Get(), mCommandList.Get());
 	mTextureManager->BuildDescriptorHeaps(md3dDevice.Get());
 	mTextureManager->BuildShaderResourceViews(md3dDevice.Get());
 
-	//LoadTextures();
+	//BuildMaterials();
+	mMaterialManager = std::make_unique<MaterialManager>();
+	mMaterialManager->BuildMaterials();
+
     BuildRootSignature();
-	//BuildDescriptorHeaps();
     BuildShadersAndInputLayouts();
     BuildLandGeometry();
     BuildWavesGeometry();
 	BuildBoxGeometry();
 	BuildTreeSpritesGeometry();
-	BuildMaterials();
     BuildRenderItems();
     BuildFrameResources();
     BuildPSOs();
@@ -418,7 +426,8 @@ void TreeBillboardsApp::UpdateObjectCBs(const GameTimer& gt)
 void TreeBillboardsApp::UpdateMaterialCBs(const GameTimer& gt)
 {
 	auto currMaterialCB = mCurrFrameResource->MaterialCB.get();
-	for(auto& e : mMaterials)
+	//for(auto& e : mMaterials)
+	for (auto& e : mMaterialManager->GetMaterials())
 	{
 		// Only update the cbuffer data if the constants have changed.  If the cbuffer
 		// data changes, it needs to be updated for each FrameResource.
@@ -561,66 +570,6 @@ void TreeBillboardsApp::BuildRootSignature()
         IID_PPV_ARGS(mRootSignature.GetAddressOf())));
 }
 
-
-/*
-void TreeBillboardsApp::BuildDescriptorHeaps()
-{
-	//
-	// Create the SRV heap.
-	//
-	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = 4;
-	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
-
-	//
-	// Fill out the heap with actual descriptors.
-	//
-	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(mSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-
-	// [수정] TextureManager를 통해 참조를 받아옵니다.
-	const auto& textures = mTextureManager->GetTextures();
-
-	// 기존의 mTextures["이름"] 을 textures.at("이름") 으로 바꿉니다.
-	auto grassTex = textures.at("grassTex")->Resource;
-	auto waterTex = textures.at("waterTex")->Resource;
-	auto fenceTex = textures.at("fenceTex")->Resource;
-	auto treeArrayTex = textures.at("treeArrayTex")->Resource;
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = grassTex->GetDesc().Format;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.MipLevels = -1;
-	md3dDevice->CreateShaderResourceView(grassTex.Get(), &srvDesc, hDescriptor);
-
-	// next descriptor
-	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
-
-	srvDesc.Format = waterTex->GetDesc().Format;
-	md3dDevice->CreateShaderResourceView(waterTex.Get(), &srvDesc, hDescriptor);
-
-	// next descriptor
-	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
-
-	srvDesc.Format = fenceTex->GetDesc().Format;
-	md3dDevice->CreateShaderResourceView(fenceTex.Get(), &srvDesc, hDescriptor);
-
-	// next descriptor
-	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
-
-	auto desc = treeArrayTex->GetDesc();
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-	srvDesc.Format = treeArrayTex->GetDesc().Format;
-	srvDesc.Texture2DArray.MostDetailedMip = 0;
-	srvDesc.Texture2DArray.MipLevels = -1;
-	srvDesc.Texture2DArray.FirstArraySlice = 0;
-	srvDesc.Texture2DArray.ArraySize = treeArrayTex->GetDesc().DepthOrArraySize;
-	md3dDevice->CreateShaderResourceView(treeArrayTex.Get(), &srvDesc, hDescriptor);
-}
-*/
 
 void TreeBillboardsApp::BuildShadersAndInputLayouts()
 {
@@ -982,7 +931,7 @@ void TreeBillboardsApp::BuildFrameResources()
             1, (UINT)mAllRitems.size(), (UINT)mMaterials.size(), mWaves->VertexCount()));
     }
 }
-
+/*
 void TreeBillboardsApp::BuildMaterials()
 {
 	auto grass = std::make_unique<Material>();
@@ -1024,14 +973,15 @@ void TreeBillboardsApp::BuildMaterials()
 	mMaterials["wirefence"] = std::move(wirefence);
 	mMaterials["treeSprites"] = std::move(treeSprites);
 }
-
+*/
 void TreeBillboardsApp::BuildRenderItems()
 {
     auto wavesRitem = std::make_unique<RenderItem>();
     wavesRitem->World = MathHelper::Identity4x4();
 	XMStoreFloat4x4(&wavesRitem->TexTransform, XMMatrixScaling(5.0f, 5.0f, 1.0f));
 	wavesRitem->ObjCBIndex = 0;
-	wavesRitem->Mat = mMaterials["water"].get();
+	//wavesRitem->Mat = mMaterials["water"].get();
+	wavesRitem->Mat = mMaterialManager->Get("water");
 	wavesRitem->Geo = mGeometries["waterGeo"].get();
 	wavesRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	wavesRitem->IndexCount = wavesRitem->Geo->DrawArgs["grid"].IndexCount;
@@ -1046,7 +996,8 @@ void TreeBillboardsApp::BuildRenderItems()
     gridRitem->World = MathHelper::Identity4x4();
 	XMStoreFloat4x4(&gridRitem->TexTransform, XMMatrixScaling(5.0f, 5.0f, 1.0f));
 	gridRitem->ObjCBIndex = 1;
-	gridRitem->Mat = mMaterials["grass"].get();
+	//gridRitem->Mat = mMaterials["grass"].get();
+	gridRitem->Mat = mMaterialManager->Get("grass");
 	gridRitem->Geo = mGeometries["landGeo"].get();
 	gridRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     gridRitem->IndexCount = gridRitem->Geo->DrawArgs["grid"].IndexCount;
@@ -1058,7 +1009,8 @@ void TreeBillboardsApp::BuildRenderItems()
 	auto boxRitem = std::make_unique<RenderItem>();
 	XMStoreFloat4x4(&boxRitem->World, XMMatrixTranslation(3.0f, 2.0f, -9.0f));
 	boxRitem->ObjCBIndex = 2;
-	boxRitem->Mat = mMaterials["wirefence"].get();
+	//boxRitem->Mat = mMaterials["wirefence"].get();
+	boxRitem->Mat = mMaterialManager->Get("wirefence");
 	boxRitem->Geo = mGeometries["boxGeo"].get();
 	boxRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	boxRitem->IndexCount = boxRitem->Geo->DrawArgs["box"].IndexCount;
@@ -1070,7 +1022,8 @@ void TreeBillboardsApp::BuildRenderItems()
 	auto treeSpritesRitem = std::make_unique<RenderItem>();
 	treeSpritesRitem->World = MathHelper::Identity4x4();
 	treeSpritesRitem->ObjCBIndex = 3;
-	treeSpritesRitem->Mat = mMaterials["treeSprites"].get();
+	//treeSpritesRitem->Mat = mMaterials["treeSprites"].get();
+	treeSpritesRitem->Mat = mMaterialManager->Get("treeArray");
 	treeSpritesRitem->Geo = mGeometries["treeSpritesGeo"].get();
 	treeSpritesRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
 	treeSpritesRitem->IndexCount = treeSpritesRitem->Geo->DrawArgs["points"].IndexCount;
