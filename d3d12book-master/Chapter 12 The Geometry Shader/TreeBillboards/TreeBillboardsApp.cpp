@@ -90,8 +90,8 @@ private:
 
     UINT mCbvSrvDescriptorSize = 0;
 
-    ComPtr<ID3D12RootSignature> mRootSignature = nullptr;
-	std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
+    //ComPtr<ID3D12RootSignature> mRootSignature = nullptr;
+	//std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
 
 	//ComPtr<ID3D12DescriptorHeap> mSrvDescriptorHeap = nullptr;
 
@@ -102,8 +102,10 @@ private:
 	std::unique_ptr<TextureManager> mTextureManager; // (Ãß°¡)
 	std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> mPSOs;
 
-    std::vector<D3D12_INPUT_ELEMENT_DESC> mStdInputLayout;
-	std::vector<D3D12_INPUT_ELEMENT_DESC> mTreeSpriteInputLayout;
+	std::unique_ptr<PipelineManager> mPipelineManager;
+
+    //std::vector<D3D12_INPUT_ELEMENT_DESC> mStdInputLayout;
+	//std::vector<D3D12_INPUT_ELEMENT_DESC> mTreeSpriteInputLayout;
 
     RenderItem* mWavesRitem = nullptr;
 
@@ -206,8 +208,11 @@ bool TreeBillboardsApp::Initialize()
 	auto treesGeo = SceneGeometryBuilder::BuildTreeSpritesGeometry(md3dDevice.Get(), mCommandList.Get());
 	mGeometries[treesGeo->Name] = std::move(treesGeo);
 
-    BuildRootSignature();
-    BuildShadersAndInputLayouts();
+    // BuildRootSignature();
+    // BuildShadersAndInputLayouts();
+	mPipelineManager = std::make_unique<PipelineManager>();
+	mPipelineManager->BuildRootSignature(md3dDevice.Get());
+	mPipelineManager->BuildShadersAndInputLayout();
 
     BuildRenderItems();
     BuildFrameResources();
@@ -289,7 +294,8 @@ void TreeBillboardsApp::Draw(const GameTimer& gt)
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mTextureManager->GetSrvDescriptorHeap() };
 	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
+	//mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
+	mCommandList->SetGraphicsRootSignature(mPipelineManager->GetRootSignature());
 
 	auto passCB = mCurrFrameResource->PassCB->Resource();
 	mCommandList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
@@ -544,7 +550,7 @@ void TreeBillboardsApp::UpdateWaves(const GameTimer& gt)
 	// Set the dynamic VB of the wave renderitem to the current frame VB.
 	mWavesRitem->Geo->VertexBufferGPU = currWavesVB->Resource();
 }
-
+/*
 void TreeBillboardsApp::BuildRootSignature()
 {
 	CD3DX12_DESCRIPTOR_RANGE texTable;
@@ -584,8 +590,8 @@ void TreeBillboardsApp::BuildRootSignature()
         serializedRootSig->GetBufferSize(),
         IID_PPV_ARGS(mRootSignature.GetAddressOf())));
 }
-
-
+*/
+/*
 void TreeBillboardsApp::BuildShadersAndInputLayouts()
 {
 	const D3D_SHADER_MACRO defines[] =
@@ -622,6 +628,7 @@ void TreeBillboardsApp::BuildShadersAndInputLayouts()
 		{ "SIZE", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 	};
 }
+*/
 
 void TreeBillboardsApp::BuildPSOs()
 {
@@ -631,17 +638,18 @@ void TreeBillboardsApp::BuildPSOs()
 	// PSO for opaque objects.
 	//
     ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-	opaquePsoDesc.InputLayout = { mStdInputLayout.data(), (UINT)mStdInputLayout.size() };
-	opaquePsoDesc.pRootSignature = mRootSignature.Get();
-	opaquePsoDesc.VS = 
-	{ 
-		reinterpret_cast<BYTE*>(mShaders["standardVS"]->GetBufferPointer()), 
-		mShaders["standardVS"]->GetBufferSize()
+	opaquePsoDesc.InputLayout = { mPipelineManager->GetInputLayout().data(), (UINT)mPipelineManager->GetInputLayout().size() };
+	opaquePsoDesc.pRootSignature = mPipelineManager->GetRootSignature();
+
+	opaquePsoDesc.VS =
+	{
+		reinterpret_cast<BYTE*>(mPipelineManager->GetShader("standardVS")->GetBufferPointer()),
+		mPipelineManager->GetShader("standardVS")->GetBufferSize()
 	};
 	opaquePsoDesc.PS = 
 	{ 
-		reinterpret_cast<BYTE*>(mShaders["opaquePS"]->GetBufferPointer()),
-		mShaders["opaquePS"]->GetBufferSize()
+		reinterpret_cast<BYTE*>(mPipelineManager->GetShader("opaquePS")->GetBufferPointer()),
+		mPipelineManager->GetShader("opaquePS")->GetBufferSize()
 	};
 	opaquePsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	opaquePsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
@@ -683,8 +691,8 @@ void TreeBillboardsApp::BuildPSOs()
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC alphaTestedPsoDesc = opaquePsoDesc;
 	alphaTestedPsoDesc.PS = 
 	{ 
-		reinterpret_cast<BYTE*>(mShaders["alphaTestedPS"]->GetBufferPointer()),
-		mShaders["alphaTestedPS"]->GetBufferSize()
+		reinterpret_cast<BYTE*>(mPipelineManager->GetShader("alphaTestedPS")->GetBufferPointer()),
+		mPipelineManager->GetShader("alphaTestedPS")->GetBufferSize()
 	};
 	alphaTestedPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&alphaTestedPsoDesc, IID_PPV_ARGS(&mPSOs["alphaTested"])));
@@ -695,21 +703,21 @@ void TreeBillboardsApp::BuildPSOs()
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC treeSpritePsoDesc = opaquePsoDesc;
 	treeSpritePsoDesc.VS =
 	{
-		reinterpret_cast<BYTE*>(mShaders["treeSpriteVS"]->GetBufferPointer()),
-		mShaders["treeSpriteVS"]->GetBufferSize()
+		reinterpret_cast<BYTE*>(mPipelineManager->GetShader("treeSpriteVS")->GetBufferPointer()),
+		mPipelineManager->GetShader("treeSpriteVS")->GetBufferSize()
 	};
 	treeSpritePsoDesc.GS =
 	{
-		reinterpret_cast<BYTE*>(mShaders["treeSpriteGS"]->GetBufferPointer()),
-		mShaders["treeSpriteGS"]->GetBufferSize()
+		reinterpret_cast<BYTE*>(mPipelineManager->GetShader("treeSpriteGS")->GetBufferPointer()),
+		mPipelineManager->GetShader("treeSpriteGS")->GetBufferSize()
 	};
 	treeSpritePsoDesc.PS =
 	{
-		reinterpret_cast<BYTE*>(mShaders["treeSpritePS"]->GetBufferPointer()),
-		mShaders["treeSpritePS"]->GetBufferSize()
+		reinterpret_cast<BYTE*>(mPipelineManager->GetShader("treeSpritePS")->GetBufferPointer()),
+		mPipelineManager->GetShader("treeSpritePS")->GetBufferSize()
 	};
 	treeSpritePsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
-	treeSpritePsoDesc.InputLayout = { mTreeSpriteInputLayout.data(), (UINT)mTreeSpriteInputLayout.size() };
+	treeSpritePsoDesc.InputLayout = { mPipelineManager->GetInputLayout().data(), (UINT)mPipelineManager->GetInputLayout().size() };
 	treeSpritePsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&treeSpritePsoDesc, IID_PPV_ARGS(&mPSOs["treeSprites"])));
@@ -826,7 +834,7 @@ void TreeBillboardsApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, cons
         cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
     }
 }
-
+/*
 std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> TreeBillboardsApp::GetStaticSamplers()
 {
 	// Applications usually only need a handful of samplers.  So just define them all up front
@@ -883,7 +891,7 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> TreeBillboardsApp::GetStaticSam
 		linearWrap, linearClamp, 
 		anisotropicWrap, anisotropicClamp };
 }
-
+*/
 float TreeBillboardsApp::GetHillsHeight(float x, float z)const
 {
     return 0.3f*(z*sinf(0.1f*x) + x*cosf(0.1f*z));
