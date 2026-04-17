@@ -77,10 +77,10 @@ private:
     UINT mCbvSrvDescriptorSize = 0;
 
     std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometries;
-    std::unique_ptr<MaterialManager> mMaterialManager; // (추가)
-    std::unique_ptr<TextureManager> mTextureManager; // (추가)
     std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> mPSOs;
 
+    std::unique_ptr<MaterialManager> mMaterialManager; // (추가)
+    std::unique_ptr<TextureManager> mTextureManager;   // (추가)
     std::unique_ptr<PipelineManager> mPipelineManager; // (추가)
 
     RenderItem* mWavesRitem = nullptr;
