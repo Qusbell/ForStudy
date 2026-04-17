@@ -33,11 +33,9 @@ bool TreeBillboardsApp::Initialize()
 	// [수정] 텍스처 및 SRV 관련 초기화
 	//LoadTextures();
 	//BuildDescriptorHeaps();
-	mTextureManager = std::make_unique<TextureManager>();
-	mTextureManager->BuildDescriptorHeaps(md3dDevice.Get());
-	mTextureManager->LoadTextures(md3dDevice.Get(), mCommandList.Get());
-	mTextureManager->BuildDescriptorHeaps(md3dDevice.Get());
-	mTextureManager->BuildShaderResourceViews(md3dDevice.Get());
+	mTextureManager = std::make_unique<TextureManager>(md3dDevice.Get());
+	mTextureManager->LoadTextures(mCommandList.Get());
+	mTextureManager->BuildDescriptorHeaps();
 
 	//BuildMaterials();
 	mMaterialManager = std::make_unique<MaterialManager>();
