@@ -64,7 +64,7 @@ private:
     void BuildRootSignature();
 	//void BuildDescriptorHeaps();
     void BuildShadersAndInputLayouts();
-    void BuildLandGeometry();
+    //void BuildLandGeometry();
     void BuildWavesGeometry();
 	//void BuildBoxGeometry();
 	void BuildTreeSpritesGeometry();
@@ -191,9 +191,12 @@ bool TreeBillboardsApp::Initialize()
 	auto boxGeo = SceneGeometryBuilder::BuildBoxGeometry(md3dDevice.Get(), mCommandList.Get());
 	mGeometries[boxGeo->Name] = std::move(boxGeo);
 
+	//BuildLandGeometry();
+	auto landGeo = SceneGeometryBuilder::BuildLandGeometry(md3dDevice.Get(), mCommandList.Get());
+	mGeometries[landGeo->Name] = std::move(landGeo);
+
     BuildRootSignature();
     BuildShadersAndInputLayouts();
-    BuildLandGeometry();
     BuildWavesGeometry();
 	BuildTreeSpritesGeometry();
     BuildRenderItems();
@@ -610,6 +613,7 @@ void TreeBillboardsApp::BuildShadersAndInputLayouts()
 	};
 }
 
+/*
 void TreeBillboardsApp::BuildLandGeometry()
 {
     GeometryGenerator geoGen;
@@ -665,6 +669,7 @@ void TreeBillboardsApp::BuildLandGeometry()
 
 	mGeometries["landGeo"] = std::move(geo);
 }
+*/
 
 void TreeBillboardsApp::BuildWavesGeometry()
 {
