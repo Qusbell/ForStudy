@@ -1,16 +1,15 @@
 #pragma once
 
 #include "../../Common/d3dUtil.h"
-#include "../../Common/GeometryGenerator.h"
 #include <memory>
 
 // ==============================================================================
-// [Refactoring Phase 3-1] Shape 지오메트리 생성 분리
-// 100줄이 넘어가는 지오메트리 버퍼 생성 로직들을 모듈화하기 위한 빌더 클래스
+// [Refactoring Phase 3-1] Box 지오메트리 생성 로직 단독 분리
+// 메인 App의 BuildBoxGeometry() 함수를 캡슐화합니다.
 // ==============================================================================
 class SceneGeometryBuilder
 {
 public:
-    // 박스, 그리드, 구, 원기둥을 병합한 형태의 지오메트리 버퍼를 생성하여 반환합니다.
-    static std::unique_ptr<MeshGeometry> BuildShapeGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList);
+    // 디바이스와 커맨드 리스트를 받아 Box 지오메트리를 생성 후 반환합니다.
+    static std::unique_ptr<MeshGeometry> BuildBoxGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList);
 };

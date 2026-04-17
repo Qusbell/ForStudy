@@ -60,13 +60,13 @@ private:
 	void UpdateMainPassCB(const GameTimer& gt);
 	void UpdateWaves(const GameTimer& gt); 
 
-	void LoadTextures();
+	//void LoadTextures();
     void BuildRootSignature();
 	//void BuildDescriptorHeaps();
     void BuildShadersAndInputLayouts();
     void BuildLandGeometry();
     void BuildWavesGeometry();
-	void BuildBoxGeometry();
+	//void BuildBoxGeometry();
 	void BuildTreeSpritesGeometry();
     void BuildPSOs();
     void BuildFrameResources();
@@ -187,11 +187,14 @@ bool TreeBillboardsApp::Initialize()
 	mMaterialManager = std::make_unique<MaterialManager>();
 	mMaterialManager->BuildMaterials();
 
+	//BuildBoxGeometry();
+	auto boxGeo = SceneGeometryBuilder::BuildBoxGeometry(md3dDevice.Get(), mCommandList.Get());
+	mGeometries[boxGeo->Name] = std::move(boxGeo);
+
     BuildRootSignature();
     BuildShadersAndInputLayouts();
     BuildLandGeometry();
     BuildWavesGeometry();
-	BuildBoxGeometry();
 	BuildTreeSpritesGeometry();
     BuildRenderItems();
     BuildFrameResources();
@@ -529,11 +532,6 @@ void TreeBillboardsApp::UpdateWaves(const GameTimer& gt)
 	mWavesRitem->Geo->VertexBufferGPU = currWavesVB->Resource();
 }
 
-void TreeBillboardsApp::LoadTextures()
-{
-	mTextureManager->LoadTextures(md3dDevice.Get(), mCommandList.Get());
-}
-
 void TreeBillboardsApp::BuildRootSignature()
 {
 	CD3DX12_DESCRIPTOR_RANGE texTable;
@@ -722,55 +720,6 @@ void TreeBillboardsApp::BuildWavesGeometry()
 	geo->DrawArgs["grid"] = submesh;
 
 	mGeometries["waterGeo"] = std::move(geo);
-}
-
-void TreeBillboardsApp::BuildBoxGeometry()
-{
-	GeometryGenerator geoGen;
-	GeometryGenerator::MeshData box = geoGen.CreateBox(8.0f, 8.0f, 8.0f, 3);
-
-	std::vector<Vertex> vertices(box.Vertices.size());
-	for (size_t i = 0; i < box.Vertices.size(); ++i)
-	{
-		auto& p = box.Vertices[i].Position;
-		vertices[i].Pos = p;
-		vertices[i].Normal = box.Vertices[i].Normal;
-		vertices[i].TexC = box.Vertices[i].TexC;
-	}
-
-	const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
-
-	std::vector<std::uint16_t> indices = box.GetIndices16();
-	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
-
-	auto geo = std::make_unique<MeshGeometry>();
-	geo->Name = "boxGeo";
-
-	ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->VertexBufferCPU));
-	CopyMemory(geo->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
-
-	ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->IndexBufferCPU));
-	CopyMemory(geo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
-
-	geo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
-		mCommandList.Get(), vertices.data(), vbByteSize, geo->VertexBufferUploader);
-
-	geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
-		mCommandList.Get(), indices.data(), ibByteSize, geo->IndexBufferUploader);
-
-	geo->VertexByteStride = sizeof(Vertex);
-	geo->VertexBufferByteSize = vbByteSize;
-	geo->IndexFormat = DXGI_FORMAT_R16_UINT;
-	geo->IndexBufferByteSize = ibByteSize;
-
-	SubmeshGeometry submesh;
-	submesh.IndexCount = (UINT)indices.size();
-	submesh.StartIndexLocation = 0;
-	submesh.BaseVertexLocation = 0;
-
-	geo->DrawArgs["box"] = submesh;
-
-	mGeometries["boxGeo"] = std::move(geo);
 }
 
 void TreeBillboardsApp::BuildTreeSpritesGeometry()
