@@ -168,6 +168,7 @@ bool TreeBillboardsApp::Initialize()
  
 	// [수정] 텍스처 및 SRV 관련 초기화
 	mTextureManager = std::make_unique<TextureManager>();
+	mTextureManager->BuildDescriptorHeaps(md3dDevice.Get());
 	mTextureManager->LoadTextures(md3dDevice.Get(), mCommandList.Get());
 	mTextureManager->BuildDescriptorHeaps(md3dDevice.Get());
 	mTextureManager->BuildShaderResourceViews(md3dDevice.Get());
@@ -1101,14 +1102,18 @@ void TreeBillboardsApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, cons
         cmdList->IASetIndexBuffer(&ri->Geo->IndexBufferView());
         cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
 
+		//CD3DX12_GPU_DESCRIPTOR_HANDLE tex(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 		//tex.Offset(ri->Mat->DiffuseSrvHeapIndex, mCbvSrvDescriptorSize);
+
+		CD3DX12_GPU_DESCRIPTOR_HANDLE tex(mTextureManager->GetSrvDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
+		tex.Offset(ri->Mat->DiffuseSrvHeapIndex, mCbvSrvDescriptorSize);
+
+		//mCommandList->SetGraphicsRootDescriptorTable(0, mTextureManager->GetSrvDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
         D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress() + ri->ObjCBIndex*objCBByteSize;
 		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = matCB->GetGPUVirtualAddress() + ri->Mat->MatCBIndex*matCBByteSize;
 
-		// CD3DX12_GPU_DESCRIPTOR_HANDLE tex(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-		// cmdList->SetGraphicsRootDescriptorTable(0, tex);
-		mCommandList->SetGraphicsRootDescriptorTable(0, mTextureManager->GetSrvDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
+		cmdList->SetGraphicsRootDescriptorTable(0, tex);
         cmdList->SetGraphicsRootConstantBufferView(1, objCBAddress);
         cmdList->SetGraphicsRootConstantBufferView(3, matCBAddress);
 
