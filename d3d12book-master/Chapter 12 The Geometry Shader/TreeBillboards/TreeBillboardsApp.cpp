@@ -65,9 +65,9 @@ private:
 	//void BuildDescriptorHeaps();
     void BuildShadersAndInputLayouts();
     //void BuildLandGeometry();
-    void BuildWavesGeometry();
+    //void BuildWavesGeometry();
 	//void BuildBoxGeometry();
-	void BuildTreeSpritesGeometry();
+	//void BuildTreeSpritesGeometry();
     void BuildPSOs();
     void BuildFrameResources();
     //void BuildMaterials();
@@ -195,10 +195,17 @@ bool TreeBillboardsApp::Initialize()
 	auto landGeo = SceneGeometryBuilder::BuildLandGeometry(md3dDevice.Get(), mCommandList.Get());
 	mGeometries[landGeo->Name] = std::move(landGeo);
 
+	//BuildWavesGeometry();
+	auto wavesGeo = SceneGeometryBuilder::BuildWavesGeometry(md3dDevice.Get(), mCommandList.Get(), mWaves.get());
+	mGeometries[wavesGeo->Name] = std::move(wavesGeo);
+
+	//BuildTreeSpritesGeometry();
+	auto treesGeo = SceneGeometryBuilder::BuildTreeSpritesGeometry(md3dDevice.Get(), mCommandList.Get());
+	mGeometries[treesGeo->Name] = std::move(treesGeo);
+
     BuildRootSignature();
     BuildShadersAndInputLayouts();
-    BuildWavesGeometry();
-	BuildTreeSpritesGeometry();
+
     BuildRenderItems();
     BuildFrameResources();
     BuildPSOs();
@@ -670,7 +677,7 @@ void TreeBillboardsApp::BuildLandGeometry()
 	mGeometries["landGeo"] = std::move(geo);
 }
 */
-
+/*
 void TreeBillboardsApp::BuildWavesGeometry()
 {
     std::vector<std::uint16_t> indices(3 * mWaves->TriangleCount()); // 3 indices per face
@@ -726,7 +733,9 @@ void TreeBillboardsApp::BuildWavesGeometry()
 
 	mGeometries["waterGeo"] = std::move(geo);
 }
+*/
 
+/*
 void TreeBillboardsApp::BuildTreeSpritesGeometry()
 {
 	struct TreeSpriteVertex
@@ -788,6 +797,7 @@ void TreeBillboardsApp::BuildTreeSpritesGeometry()
 
 	mGeometries["treeSpritesGeo"] = std::move(geo);
 }
+*/
 
 void TreeBillboardsApp::BuildPSOs()
 {

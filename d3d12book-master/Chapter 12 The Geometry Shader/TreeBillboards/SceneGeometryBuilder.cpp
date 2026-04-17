@@ -120,3 +120,124 @@ std::unique_ptr<MeshGeometry> SceneGeometryBuilder::BuildLandGeometry(ID3D12Devi
 
     return geo;
 }
+
+
+std::unique_ptr<MeshGeometry> SceneGeometryBuilder::BuildTreeSpritesGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
+{
+    // 보통 Tree 빌보드는 별도의 정점 구조체를 가집니다.
+    struct TreeSpriteVertex
+    {
+        DirectX::XMFLOAT3 Pos;
+        DirectX::XMFLOAT2 Size;
+    };
+
+    static const int treeCount = 16;
+    std::array<TreeSpriteVertex, 16> vertices;
+    for (UINT i = 0; i < treeCount; ++i)
+    {
+        // ★ 주의: 기존 TreeBillboardsApp::BuildTreeSpritesGeometry() 안에 있던 
+        // x, y, z 좌표 계산 코드를 여기에 그대로 복사해서 넣어주세요.
+        float x = MathHelper::RandF(-45.0f, 45.0f);
+        float z = MathHelper::RandF(-45.0f, 45.0f);
+
+        // 기존 앱에서 y 값을 구하는 별도의 함수(GetHillsHeight 등)를 쓰고 있었다면 
+        // 이 곳으로 가져와서 익명 네임스페이스에 넣거나, 바로 계산식을 적어줍니다.
+        // 만약 y값을 사용하지 않는다면 아래처럼 고정값을 사용하면 됩니다.
+        float y = 8.0f; // 임시 고정값
+
+        vertices[i].Pos = DirectX::XMFLOAT3(x, y, z);
+        vertices[i].Size = DirectX::XMFLOAT2(20.0f, 20.0f);
+    }
+
+    std::array<std::uint16_t, 16> indices =
+    {
+        0, 1, 2, 3, 4, 5, 6, 7,
+        8, 9, 10, 11, 12, 13, 14, 15
+    };
+
+    const UINT vbByteSize = (UINT)vertices.size() * sizeof(TreeSpriteVertex);
+    const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
+
+    auto geo = std::make_unique<MeshGeometry>();
+    geo->Name = "treeSpritesGeo";
+
+    ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->VertexBufferCPU));
+    CopyMemory(geo->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
+
+    ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->IndexBufferCPU));
+    CopyMemory(geo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
+
+    geo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(device, cmdList, vertices.data(), vbByteSize, geo->VertexBufferUploader);
+    geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(device, cmdList, indices.data(), ibByteSize, geo->IndexBufferUploader);
+
+    geo->VertexByteStride = sizeof(TreeSpriteVertex);
+    geo->VertexBufferByteSize = vbByteSize;
+    geo->IndexFormat = DXGI_FORMAT_R16_UINT;
+    geo->IndexBufferByteSize = ibByteSize;
+
+    SubmeshGeometry submesh;
+    submesh.IndexCount = (UINT)indices.size();
+    submesh.StartIndexLocation = 0;
+    submesh.BaseVertexLocation = 0;
+
+    geo->DrawArgs["points"] = submesh;
+
+    return geo;
+}
+
+
+std::unique_ptr<MeshGeometry> SceneGeometryBuilder::BuildWavesGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, Waves* waves)
+{
+    std::vector<std::uint16_t> indices(3 * waves->TriangleCount()); // 삼각형당 3개의 인덱스
+    assert(waves->VertexCount() < 0x0000ffff);
+
+    // 각 쿼드(Quad)를 순회하며 인덱스를 연결합니다.
+    int m = waves->RowCount();
+    int n = waves->ColumnCount();
+    int k = 0;
+    for (int i = 0; i < m - 1; ++i)
+    {
+        for (int j = 0; j < n - 1; ++j)
+        {
+            indices[k] = i * n + j;
+            indices[k + 1] = i * n + j + 1;
+            indices[k + 2] = (i + 1) * n + j;
+
+            indices[k + 3] = (i + 1) * n + j;
+            indices[k + 4] = i * n + j + 1;
+            indices[k + 5] = (i + 1) * n + j + 1;
+
+            k += 6; // 다음 쿼드로 이동
+        }
+    }
+
+    UINT vbByteSize = waves->VertexCount() * sizeof(Vertex);
+    const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
+
+    auto geo = std::make_unique<MeshGeometry>();
+    geo->Name = "waterGeo";
+
+    // Waves는 매 프레임 정점 버퍼가 동적으로 갱신되므로 CPU/GPU 버퍼를 여기서 고정 할당하지 않습니다.
+    geo->VertexBufferCPU = nullptr;
+    geo->VertexBufferGPU = nullptr;
+
+    ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->IndexBufferCPU));
+    CopyMemory(geo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
+
+    geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(device,
+        cmdList, indices.data(), ibByteSize, geo->IndexBufferUploader);
+
+    geo->VertexByteStride = sizeof(Vertex);
+    geo->VertexBufferByteSize = vbByteSize;
+    geo->IndexFormat = DXGI_FORMAT_R16_UINT;
+    geo->IndexBufferByteSize = ibByteSize;
+
+    SubmeshGeometry submesh;
+    submesh.IndexCount = (UINT)indices.size();
+    submesh.StartIndexLocation = 0;
+    submesh.BaseVertexLocation = 0;
+
+    geo->DrawArgs["grid"] = submesh;
+
+    return geo;
+}
