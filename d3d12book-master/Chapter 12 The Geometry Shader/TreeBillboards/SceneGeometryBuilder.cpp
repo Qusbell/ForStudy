@@ -140,7 +140,7 @@ std::unique_ptr<MeshGeometry> SceneGeometryBuilder::BuildTreeSpritesGeometry(ID3
         float x = MathHelper::RandF(-45.0f, 45.0f);
         float z = MathHelper::RandF(-45.0f, 45.0f);
         float y = GetH(x, z);
-        y += 8.0f;
+        y += 8.0f; // ÇÏµåÄÚµù »©²Ä
 
         vertices[i].Pos = DirectX::XMFLOAT3(x, y, z);
         vertices[i].Size = DirectX::XMFLOAT2(20.0f, 20.0f);
