@@ -156,6 +156,7 @@
     <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="TreeBillboardsApp.cpp" />
     <ClCompile Include="Waves.cpp" />
+    <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Common\d3dApp.h" />
@@ -174,6 +175,7 @@
     <ClInclude Include="RenderLayer.h" />
     <ClInclude Include="SceneGeometryBuilder.h" />
     <ClInclude Include="TextureManager.h" />
+    <ClInclude Include="TreeBillboardsApp.h" />
     <ClInclude Include="Waves.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
