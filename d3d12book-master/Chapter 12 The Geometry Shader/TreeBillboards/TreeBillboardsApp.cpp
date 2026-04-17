@@ -19,7 +19,7 @@
 // Phase 2.3
 #include "MaterialManager.h"
 
-// Phase 3.1
+// Phase 3.1 ~ 3.4
 #include "SceneGeometryBuilder.h"
 
 

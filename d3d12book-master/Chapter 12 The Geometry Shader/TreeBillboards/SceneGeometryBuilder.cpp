@@ -139,11 +139,8 @@ std::unique_ptr<MeshGeometry> SceneGeometryBuilder::BuildTreeSpritesGeometry(ID3
         // x, y, z 좌표 계산 코드를 여기에 그대로 복사해서 넣어주세요.
         float x = MathHelper::RandF(-45.0f, 45.0f);
         float z = MathHelper::RandF(-45.0f, 45.0f);
-
-        // 기존 앱에서 y 값을 구하는 별도의 함수(GetHillsHeight 등)를 쓰고 있었다면 
-        // 이 곳으로 가져와서 익명 네임스페이스에 넣거나, 바로 계산식을 적어줍니다.
-        // 만약 y값을 사용하지 않는다면 아래처럼 고정값을 사용하면 됩니다.
-        float y = 8.0f; // 임시 고정값
+        float y = GetH(x, z);
+        y += 8.0f;
 
         vertices[i].Pos = DirectX::XMFLOAT3(x, y, z);
         vertices[i].Size = DirectX::XMFLOAT2(20.0f, 20.0f);
