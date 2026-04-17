@@ -18,6 +18,10 @@ public:
     // 잔디, 물, 철조망, 나무 머티리얼을 생성합니다.
     void BuildMaterials();
 
+    // [새로 추가됨] 단일 재질(Material)을 생성하는 단수형 헬퍼 메서드
+    void BuildMaterial(const std::string& name, int matCBIndex, int diffuseSrvHeapIndex,
+        DirectX::XMFLOAT4 diffuseAlbedo, DirectX::XMFLOAT3 fresnelR0, float roughness);
+
     // 전체 머티리얼 맵을 반환합니다 (업데이트 루프용)
     const std::unordered_map<std::string, std::unique_ptr<Material>>& GetMaterials() const;
 
