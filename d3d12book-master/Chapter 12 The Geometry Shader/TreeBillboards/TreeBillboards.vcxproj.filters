@@ -51,6 +51,9 @@
     <ClCompile Include="RenderItemManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MainApp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Common\d3dApp.h">
@@ -91,6 +94,9 @@
     </ClInclude>
     <ClInclude Include="RenderItemManager.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TreeBillboardsApp.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
