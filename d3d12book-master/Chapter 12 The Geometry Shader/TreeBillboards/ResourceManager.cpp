@@ -202,7 +202,7 @@ void ResourceManager::AddTree(float x, float y, float z)
 
 
 // [추가됨] GPU 버퍼를 갱신하는 캡슐화된 로직
-void ResourceManager::UpdateTreeGeometryBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
+void ResourceManager::UpdateTreeGeometryBuffer(ID3D12GraphicsCommandList* cmdList)
 {
     if (mTreeVertices.empty()) return;
 
@@ -222,10 +222,10 @@ void ResourceManager::UpdateTreeGeometryBuffer(ID3D12Device* device, ID3D12Graph
     ThrowIfFailed(D3DCreateBlob(ibByteSize, &treeGeo->IndexBufferCPU));
     CopyMemory(treeGeo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
 
-    treeGeo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(device,
+    treeGeo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice,
         cmdList, mTreeVertices.data(), vbByteSize, treeGeo->VertexBufferUploader);
 
-    treeGeo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(device,
+    treeGeo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice,
         cmdList, indices.data(), ibByteSize, treeGeo->IndexBufferUploader);
 
     treeGeo->VertexByteStride = sizeof(TreeSpriteVertex);

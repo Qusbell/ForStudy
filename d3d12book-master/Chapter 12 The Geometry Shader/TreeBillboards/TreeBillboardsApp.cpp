@@ -608,7 +608,7 @@ void TreeBillboardsApp::PlantTreeAt(float x, float y, float z)
     ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
     // 3. 리소스 매니저에게 버퍼 업데이트 위임
-    mResourceManager.UpdateTreeGeometryBuffer(md3dDevice.Get(), mCommandList.Get());
+    mResourceManager.UpdateTreeGeometryBuffer(mCommandList.Get());
 
     // 4. 커맨드 큐 실행 및 대기
     ThrowIfFailed(mCommandList->Close());

@@ -50,7 +50,7 @@ public:
     void BuildTreeSpritesGeometry(ID3D12GraphicsCommandList* cmdList);
 
     void AddTree(float x, float y, float z);
-    void UpdateTreeGeometryBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList);
+    void UpdateTreeGeometryBuffer(ID3D12GraphicsCommandList* cmdList);
     UINT GetTreeCount() const { return (UINT)mTreeVertices.size(); }
 
     // 테스트 용도: 단수형 메서드를 재사용하여 하드코딩된 재질들을 일괄 생성합니다.
