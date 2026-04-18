@@ -77,7 +77,11 @@ private:
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems);
 
 private:
+    // [추가] 픽킹 및 오브젝트 배치 함수
+    void Pick(int sx, int sy);
+    void PlantTreeAt(float x, float y, float z);
 
+private:
     std::vector<std::unique_ptr<FrameResource>> mFrameResources;
     FrameResource* mCurrFrameResource = nullptr;
     int mCurrFrameResourceIndex = 0;
@@ -98,8 +102,6 @@ private:
     // [수정됨] 기존 구면 좌표계 및 행렬 변수를 Camera 객체로 대체
     Camera mCamera;
 
-    UINT mTreeCount = 0;
-
     // 현재 선택된 툴 모드 상태 변수
     ToolMode mCurrentMode = ToolMode::Camera;
 
@@ -109,9 +111,4 @@ private:
 
 
     POINT mLastMousePos;
-
-
-    //  // [추가] 픽킹 및 오브젝트 배치 함수
-    void Pick(int sx, int sy);
-    void PlantTreeAt(float x, float y, float z);
 };
