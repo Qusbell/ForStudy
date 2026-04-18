@@ -552,9 +552,6 @@ void TreeBillboardsApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, cons
     }
 }
 
-// -------------------------------------------------------------------------
-// [Step 2] 픽킹 및 동적 나무 배치 구현부
-// -------------------------------------------------------------------------
 
 void TreeBillboardsApp::Pick(int sx, int sy)
 {
@@ -599,6 +596,40 @@ void TreeBillboardsApp::Pick(int sx, int sy)
         PlantTreeAt(hitX, hitY, hitZ);
     }
 }
+
+// 2. PlantTreeAt 함수가 아주 깔끔해집니다.
+void TreeBillboardsApp::PlantTreeAt(float x, float y, float z)
+{
+    // 1. 데이터 추가 위임
+    mResourceManager.AddTree(x, y, z);
+
+    // 2. GPU 동기화 및 커맨드 리스트 준비
+    FlushCommandQueue();
+    ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+
+    // 3. 리소스 매니저에게 버퍼 업데이트 위임
+    mResourceManager.UpdateTreeGeometryBuffer(md3dDevice.Get(), mCommandList.Get());
+
+    // 4. 커맨드 큐 실행 및 대기
+    ThrowIfFailed(mCommandList->Close());
+    ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
+    mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+    FlushCommandQueue();
+
+    // 5. 렌더 아이템 매니저의 Draw 카운트 갱신
+    auto& treeRitems = mRenderItemManager.GetRitemLayer(RenderLayer::AlphaTestedTreeSprites);
+    for (auto& e : treeRitems)
+    {
+        e->IndexCount = mResourceManager.GetTreeCount();
+    }
+}
+
+
+
+/*
+// -------------------------------------------------------------------------
+// [Step 2] 픽킹 및 동적 나무 배치 구현부
+// -------------------------------------------------------------------------
 
 void TreeBillboardsApp::PlantTreeAt(float x, float y, float z)
 {
@@ -682,3 +713,4 @@ void TreeBillboardsApp::RebuildTreeGeometry()
         e->BaseVertexLocation = 0;
     }
 }
+*/

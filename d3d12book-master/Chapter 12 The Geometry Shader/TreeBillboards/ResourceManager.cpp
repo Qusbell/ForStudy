@@ -165,38 +165,79 @@ void ResourceManager::BuildWavesGeometry(ID3D12GraphicsCommandList* cmdList, Wav
 
 void ResourceManager::BuildTreeSpritesGeometry(ID3D12GraphicsCommandList* cmdList)
 {
-    struct TreeSpriteVertex
+    // [수정됨] 내부 구조체 정의 삭제, 클래스 멤버 mTreeVertices 활용
+    // 처음 생성 시 기본 나무 16개를 셋팅합니다.
+    if (mTreeVertices.empty())
     {
-        DirectX::XMFLOAT3 Pos;
-        DirectX::XMFLOAT2 Size;
-    };
-
-    static const int treeCount = 16;
-    std::array<TreeSpriteVertex, 16> vertices;
-    for (UINT i = 0; i < treeCount; ++i)
-    {
-        float x = MathHelper::RandF(-45.0f, 45.0f);
-        float z = MathHelper::RandF(-45.0f, 45.0f);
-        float y = Hills::GetHeight(x, z);
-
-        // Move tree slightly above land height.
-        y += 8.0f;
-
-        vertices[i].Pos = DirectX::XMFLOAT3(x, y, z);
-        vertices[i].Size = DirectX::XMFLOAT2(20.0f, 20.0f);
+        const int treeCount = 16;
+        for (UINT i = 0; i < treeCount; ++i)
+        {
+            TreeSpriteVertex v;
+            v.Pos.x = MathHelper::RandF(-45.0f, 45.0f);
+            v.Pos.z = MathHelper::RandF(-45.0f, 45.0f);
+            v.Pos.y = Hills::GetHeight(v.Pos.x, v.Pos.z) + 8.0f;
+            v.Size = DirectX::XMFLOAT2(20.0f, 20.0f);
+            mTreeVertices.push_back(v);
+        }
     }
 
-    std::vector<std::uint16_t> indices =
-    {
-        0, 1, 2, 3, 4, 5, 6, 7,
-        8, 9, 10, 11, 12, 13, 14, 15
-    };
+    std::vector<std::uint16_t> indices(mTreeVertices.size());
+    for (size_t i = 0; i < mTreeVertices.size(); ++i)
+        indices[i] = (std::uint16_t)i;
 
-    const UINT vbByteSize = (UINT)vertices.size() * sizeof(TreeSpriteVertex);
+    const UINT vbByteSize = (UINT)mTreeVertices.size() * sizeof(TreeSpriteVertex);
+    const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
 
-    // 서로 다른 Vertex 구조체 타입이라도 통합 빌더로 처리가 가능합니다.
-    BuildGeometry(cmdList, "treeSpritesGeo", "points", vertices.data(), sizeof(TreeSpriteVertex), vbByteSize, indices);
+    BuildGeometry(cmdList, "treeSpritesGeo", "points", mTreeVertices.data(), sizeof(TreeSpriteVertex), vbByteSize, indices);
 }
+
+// [추가됨] 새 나무 데이터를 배열에 추가하는 함수
+void ResourceManager::AddTree(float x, float y, float z)
+{
+    TreeSpriteVertex v;
+    v.Pos = DirectX::XMFLOAT3(x, y + 8.0f, z); // 살짝 띄움
+    v.Size = DirectX::XMFLOAT2(20.0f, 20.0f);
+    mTreeVertices.push_back(v);
+}
+
+
+// [추가됨] GPU 버퍼를 갱신하는 캡슐화된 로직
+void ResourceManager::UpdateTreeGeometryBuffer(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
+{
+    if (mTreeVertices.empty()) return;
+
+    MeshGeometry* treeGeo = mGeometries["treeSpritesGeo"].get();
+    if (!treeGeo) return;
+
+    UINT vbByteSize = (UINT)mTreeVertices.size() * sizeof(TreeSpriteVertex);
+
+    std::vector<std::uint16_t> indices(mTreeVertices.size());
+    for (size_t i = 0; i < mTreeVertices.size(); ++i)
+        indices[i] = (std::uint16_t)i;
+    UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
+
+    ThrowIfFailed(D3DCreateBlob(vbByteSize, &treeGeo->VertexBufferCPU));
+    CopyMemory(treeGeo->VertexBufferCPU->GetBufferPointer(), mTreeVertices.data(), vbByteSize);
+
+    ThrowIfFailed(D3DCreateBlob(ibByteSize, &treeGeo->IndexBufferCPU));
+    CopyMemory(treeGeo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
+
+    treeGeo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(device,
+        cmdList, mTreeVertices.data(), vbByteSize, treeGeo->VertexBufferUploader);
+
+    treeGeo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(device,
+        cmdList, indices.data(), ibByteSize, treeGeo->IndexBufferUploader);
+
+    treeGeo->VertexByteStride = sizeof(TreeSpriteVertex);
+    treeGeo->VertexBufferByteSize = vbByteSize;
+    treeGeo->IndexFormat = DXGI_FORMAT_R16_UINT;
+    treeGeo->IndexBufferByteSize = ibByteSize;
+
+    treeGeo->DrawArgs["points"].IndexCount = (UINT)mTreeVertices.size();
+    treeGeo->DrawArgs["points"].StartIndexLocation = 0;
+    treeGeo->DrawArgs["points"].BaseVertexLocation = 0;
+}
+
 
 void ResourceManager::BuildMaterials()
 {

@@ -95,11 +95,11 @@ private:
     POINT mLastMousePos;
 
 
-    // [추가] 픽킹 및 오브젝트 배치 함수
+    //  // [추가] 픽킹 및 오브젝트 배치 함수
     void Pick(int sx, int sy);
     void PlantTreeAt(float x, float y, float z);
-    void RebuildTreeGeometry();
-
-    // [수정됨] 존재하지 않는 TreeSpriteVertex 대신 범용 Vertex 구조체 사용
-    std::vector<Vertex> mTreeData;
+    //  void RebuildTreeGeometry();
+    //  
+    //  // [수정됨] 존재하지 않는 TreeSpriteVertex 대신 범용 Vertex 구조체 사용
+    //  std::vector<Vertex> mTreeData;
 };
