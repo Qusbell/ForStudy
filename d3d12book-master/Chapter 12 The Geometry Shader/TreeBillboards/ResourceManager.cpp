@@ -3,7 +3,6 @@
 #include "../../Common/MathHelper.h"
 #include "FrameResource.h"
 #include "Waves.h"
-#include <vector>
 #include <array>
 
 ResourceManager::ResourceManager()
@@ -19,7 +18,6 @@ void ResourceManager::Initialize(ID3D12Device* device)
     md3dDevice = device;
 }
 
-// 테스트 용도: 단수형 메서드를 재사용하여 하드코딩된 텍스처들을 일괄 로드합니다.
 void ResourceManager::LoadTextures(ID3D12GraphicsCommandList* cmdList)
 {
     LoadTexture(cmdList, "woodCrateTex", L"../../Textures/WoodCrate01.dds");
@@ -41,6 +39,57 @@ void ResourceManager::LoadTexture(ID3D12GraphicsCommandList* cmdList, std::strin
     mTextures[name] = std::move(tex);
 }
 
+// 중복된 버퍼 생성 로직을 통합한 공용 지오메트리 빌더
+void ResourceManager::BuildGeometry(
+    ID3D12GraphicsCommandList* cmdList,
+    std::string geoName,
+    std::string submeshName,
+    const void* vertexData,
+    UINT vertexByteStride,
+    UINT vertexBufferByteSize,
+    const std::vector<std::uint16_t>& indices)
+{
+    const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
+
+    auto geo = std::make_unique<MeshGeometry>();
+    geo->Name = geoName;
+
+    // 동적 버퍼 등 vertexData가 nullptr인 경우 생성을 스킵
+    if (vertexData != nullptr)
+    {
+        ThrowIfFailed(D3DCreateBlob(vertexBufferByteSize, &geo->VertexBufferCPU));
+        CopyMemory(geo->VertexBufferCPU->GetBufferPointer(), vertexData, vertexBufferByteSize);
+
+        geo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice,
+            cmdList, vertexData, vertexBufferByteSize, geo->VertexBufferUploader);
+    }
+    else
+    {
+        geo->VertexBufferCPU = nullptr;
+        geo->VertexBufferGPU = nullptr;
+    }
+
+    ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->IndexBufferCPU));
+    CopyMemory(geo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
+
+    geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice,
+        cmdList, indices.data(), ibByteSize, geo->IndexBufferUploader);
+
+    geo->VertexByteStride = vertexByteStride;
+    geo->VertexBufferByteSize = vertexBufferByteSize;
+    geo->IndexFormat = DXGI_FORMAT_R16_UINT;
+    geo->IndexBufferByteSize = ibByteSize;
+
+    SubmeshGeometry submesh;
+    submesh.IndexCount = (UINT)indices.size();
+    submesh.StartIndexLocation = 0;
+    submesh.BaseVertexLocation = 0;
+
+    geo->DrawArgs[submeshName] = submesh;
+
+    mGeometries[geoName] = std::move(geo);
+}
+
 void ResourceManager::BuildBoxGeometry(ID3D12GraphicsCommandList* cmdList)
 {
     GeometryGenerator geoGen;
@@ -54,39 +103,11 @@ void ResourceManager::BuildBoxGeometry(ID3D12GraphicsCommandList* cmdList)
         vertices[i].TexC = box.Vertices[i].TexC;
     }
 
+    std::vector<std::uint16_t> indices = box.GetIndices16();
     const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
 
-    std::vector<std::uint16_t> indices = box.GetIndices16();
-    const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
-
-    auto geo = std::make_unique<MeshGeometry>();
-    geo->Name = "boxGeo";
-
-    ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->VertexBufferCPU));
-    CopyMemory(geo->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
-
-    ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->IndexBufferCPU));
-    CopyMemory(geo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
-
-    geo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice,
-        cmdList, vertices.data(), vbByteSize, geo->VertexBufferUploader);
-
-    geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice,
-        cmdList, indices.data(), ibByteSize, geo->IndexBufferUploader);
-
-    geo->VertexByteStride = sizeof(Vertex);
-    geo->VertexBufferByteSize = vbByteSize;
-    geo->IndexFormat = DXGI_FORMAT_R16_UINT;
-    geo->IndexBufferByteSize = ibByteSize;
-
-    SubmeshGeometry submesh;
-    submesh.IndexCount = (UINT)indices.size();
-    submesh.StartIndexLocation = 0;
-    submesh.BaseVertexLocation = 0;
-
-    geo->DrawArgs["box"] = submesh;
-
-    mGeometries[geo->Name] = std::move(geo);
+    // 통합 빌더 호출
+    BuildGeometry(cmdList, "boxGeo", "box", vertices.data(), sizeof(Vertex), vbByteSize, indices);
 }
 
 void ResourceManager::BuildLandGeometry(ID3D12GraphicsCommandList* cmdList)
@@ -104,39 +125,11 @@ void ResourceManager::BuildLandGeometry(ID3D12GraphicsCommandList* cmdList)
         vertices[i].TexC = grid.Vertices[i].TexC;
     }
 
+    std::vector<std::uint16_t> indices = grid.GetIndices16();
     const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
 
-    std::vector<std::uint16_t> indices = grid.GetIndices16();
-    const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
-
-    auto geo = std::make_unique<MeshGeometry>();
-    geo->Name = "landGeo";
-
-    ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->VertexBufferCPU));
-    CopyMemory(geo->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
-
-    ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->IndexBufferCPU));
-    CopyMemory(geo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
-
-    geo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice,
-        cmdList, vertices.data(), vbByteSize, geo->VertexBufferUploader);
-
-    geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice,
-        cmdList, indices.data(), ibByteSize, geo->IndexBufferUploader);
-
-    geo->VertexByteStride = sizeof(Vertex);
-    geo->VertexBufferByteSize = vbByteSize;
-    geo->IndexFormat = DXGI_FORMAT_R16_UINT;
-    geo->IndexBufferByteSize = ibByteSize;
-
-    SubmeshGeometry submesh;
-    submesh.IndexCount = (UINT)indices.size();
-    submesh.StartIndexLocation = 0;
-    submesh.BaseVertexLocation = 0;
-
-    geo->DrawArgs["grid"] = submesh;
-
-    mGeometries["landGeo"] = std::move(geo);
+    // 통합 빌더 호출
+    BuildGeometry(cmdList, "landGeo", "grid", vertices.data(), sizeof(Vertex), vbByteSize, indices);
 }
 
 void ResourceManager::BuildWavesGeometry(ID3D12GraphicsCommandList* cmdList, Waves* waves)
@@ -164,34 +157,9 @@ void ResourceManager::BuildWavesGeometry(ID3D12GraphicsCommandList* cmdList, Wav
     }
 
     UINT vbByteSize = waves->VertexCount() * sizeof(Vertex);
-    UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
 
-    auto geo = std::make_unique<MeshGeometry>();
-    geo->Name = "waterGeo";
-
-    // 동적 버퍼를 매 프레임 업데이트하므로 CPU/GPU 버퍼는 nullptr로 설정
-    geo->VertexBufferCPU = nullptr;
-    geo->VertexBufferGPU = nullptr;
-
-    ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->IndexBufferCPU));
-    CopyMemory(geo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
-
-    geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice,
-        cmdList, indices.data(), ibByteSize, geo->IndexBufferUploader);
-
-    geo->VertexByteStride = sizeof(Vertex);
-    geo->VertexBufferByteSize = vbByteSize;
-    geo->IndexFormat = DXGI_FORMAT_R16_UINT;
-    geo->IndexBufferByteSize = ibByteSize;
-
-    SubmeshGeometry submesh;
-    submesh.IndexCount = (UINT)indices.size();
-    submesh.StartIndexLocation = 0;
-    submesh.BaseVertexLocation = 0;
-
-    geo->DrawArgs["grid"] = submesh;
-
-    mGeometries["waterGeo"] = std::move(geo);
+    // 동적 업데이트 용도이므로 데이터 포인터로 nullptr 전달
+    BuildGeometry(cmdList, "waterGeo", "grid", nullptr, sizeof(Vertex), vbByteSize, indices);
 }
 
 void ResourceManager::BuildTreeSpritesGeometry(ID3D12GraphicsCommandList* cmdList)
@@ -217,46 +185,18 @@ void ResourceManager::BuildTreeSpritesGeometry(ID3D12GraphicsCommandList* cmdLis
         vertices[i].Size = DirectX::XMFLOAT2(20.0f, 20.0f);
     }
 
-    std::array<std::uint16_t, 16> indices =
+    std::vector<std::uint16_t> indices =
     {
         0, 1, 2, 3, 4, 5, 6, 7,
         8, 9, 10, 11, 12, 13, 14, 15
     };
 
     const UINT vbByteSize = (UINT)vertices.size() * sizeof(TreeSpriteVertex);
-    const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
 
-    auto geo = std::make_unique<MeshGeometry>();
-    geo->Name = "treeSpritesGeo";
-
-    ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->VertexBufferCPU));
-    CopyMemory(geo->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
-
-    ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->IndexBufferCPU));
-    CopyMemory(geo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
-
-    geo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice,
-        cmdList, vertices.data(), vbByteSize, geo->VertexBufferUploader);
-
-    geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice,
-        cmdList, indices.data(), ibByteSize, geo->IndexBufferUploader);
-
-    geo->VertexByteStride = sizeof(TreeSpriteVertex);
-    geo->VertexBufferByteSize = vbByteSize;
-    geo->IndexFormat = DXGI_FORMAT_R16_UINT;
-    geo->IndexBufferByteSize = ibByteSize;
-
-    SubmeshGeometry submesh;
-    submesh.IndexCount = (UINT)indices.size();
-    submesh.StartIndexLocation = 0;
-    submesh.BaseVertexLocation = 0;
-
-    geo->DrawArgs["points"] = submesh;
-
-    mGeometries["treeSpritesGeo"] = std::move(geo);
+    // 서로 다른 Vertex 구조체 타입이라도 통합 빌더로 처리가 가능합니다.
+    BuildGeometry(cmdList, "treeSpritesGeo", "points", vertices.data(), sizeof(TreeSpriteVertex), vbByteSize, indices);
 }
 
-// 테스트 용도: 단수형 메서드를 재사용하여 하드코딩된 재질들을 일괄 생성합니다.
 void ResourceManager::BuildMaterials()
 {
     BuildMaterial("grass", 0, 0, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), DirectX::XMFLOAT3(0.01f, 0.01f, 0.01f), 0.125f);

@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <string>
 #include <memory>
+#include <vector>
 
 class Waves;
 
@@ -15,26 +16,31 @@ public:
 
     void Initialize(ID3D12Device* device);
 
-    // 테스트 용도로 복구된 하드코딩 일괄 로드 메서드
+    // 테스트 용도: 단수형 메서드를 재사용하여 하드코딩된 텍스처들을 일괄 로드합니다.
     void LoadTextures(ID3D12GraphicsCommandList* cmdList);
-
-    // 단일 텍스처 로드 메서드
     void LoadTexture(ID3D12GraphicsCommandList* cmdList, std::string name, std::wstring filename);
+
+    // 지오메트리 생성을 위한 공용(Unified) 메서드
+    void BuildGeometry(
+        ID3D12GraphicsCommandList* cmdList,
+        std::string geoName,
+        std::string submeshName,
+        const void* vertexData,
+        UINT vertexByteStride,
+        UINT vertexBufferByteSize,
+        const std::vector<std::uint16_t>& indices);
 
     void BuildBoxGeometry(ID3D12GraphicsCommandList* cmdList);
     void BuildLandGeometry(ID3D12GraphicsCommandList* cmdList);
     void BuildWavesGeometry(ID3D12GraphicsCommandList* cmdList, Waves* waves);
     void BuildTreeSpritesGeometry(ID3D12GraphicsCommandList* cmdList);
 
-    // 복수형 BuildMaterials()를 단수형 BuildMaterial(...)로 변경
-    void BuildMaterial(std::string name, int matCBIndex, int diffuseSrvHeapIndex, DirectX::XMFLOAT4 diffuseAlbedo, DirectX::XMFLOAT3 fresnelR0, float roughness);
-
+    // 테스트 용도: 단수형 메서드를 재사용하여 하드코딩된 재질들을 일괄 생성합니다.
     void BuildMaterials();
+    void BuildMaterial(std::string name, int matCBIndex, int diffuseSrvHeapIndex, DirectX::XMFLOAT4 diffuseAlbedo, DirectX::XMFLOAT3 fresnelR0, float roughness);
 
     std::unordered_map<std::string, std::unique_ptr<Texture>>& GetTextures() { return mTextures; }
     std::unordered_map<std::string, std::unique_ptr<MeshGeometry>>& GetGeometries() { return mGeometries; }
-
-    // 1-3: 재질 맵에 접근하기 위한 Getter 메서드
     std::unordered_map<std::string, std::unique_ptr<Material>>& GetMaterials() { return mMaterials; }
 
 private:
@@ -46,7 +52,5 @@ private:
 
     std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
     std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometries;
-
-    // Step 1-3: TreeBillboardsApp.h에서 이동된 재질 리소스 맵
     std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
 };
