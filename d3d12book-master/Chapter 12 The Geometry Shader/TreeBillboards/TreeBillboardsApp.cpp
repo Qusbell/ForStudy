@@ -196,11 +196,11 @@ void TreeBillboardsApp::OnMouseDown(WPARAM btnState, int x, int y)
     }
     else if (mCurrentMode == ToolMode::PlantTree && (btnState & MK_LBUTTON))
     {
-        // TODO: (Step 2) 픽킹(Picking) 및 나무 심기
+        Pick(x, y); // [추가] 마우스 위치로 광선을 쏴서 나무 심기 호출
     }
     else if (mCurrentMode == ToolMode::BuildFence && (btnState & MK_LBUTTON))
     {
-        // TODO: (Step 2) 픽킹(Picking) 및 펜스 짓기
+        // Pick(x, y); // 펜스 짓기 구현 시 사용
     }
 }
 
@@ -236,36 +236,37 @@ LRESULT TreeBillboardsApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 {
     switch (msg)
     {
-        case WM_COMMAND:
+    case WM_COMMAND:
+    {
+        int wmId = LOWORD(wParam);
+        switch (wmId)
         {
-            int wmId = LOWORD(wParam);
-            switch (wmId)
-            {
-            case ID_MODE_CAMERA:
-                mCurrentMode = ToolMode::Camera;
-                break;
-            case ID_MODE_PLANT_TREE:
-                mCurrentMode = ToolMode::PlantTree;
-                break;
-            case ID_MODE_BUILD_FENCE:
-                mCurrentMode = ToolMode::BuildFence;
-                break;
-            case ID_FILE_SAVE:
-                // TODO: (Step 4) 맵 저장 로직
-                break;
-            case ID_FILE_LOAD:
-                // TODO: (Step 4) 맵 로드 로직
-                break;
-            case ID_ENV_DAY:
-                // TODO: (Step 3) 낮 조명 적용
-                break;
-            case ID_ENV_NIGHT:
-                // TODO: (Step 3) 밤 조명 적용
-                break;
-            }
-            return 0; // 메시지 처리 완료
+        case ID_MODE_CAMERA:
+            mCurrentMode = ToolMode::Camera;
+            break;
+        case ID_MODE_PLANT_TREE:
+            mCurrentMode = ToolMode::PlantTree;
+            break;
+        case ID_MODE_BUILD_FENCE:
+            mCurrentMode = ToolMode::BuildFence;
+            break;
+        case ID_FILE_SAVE:
+            // TODO: (Step 4) 맵 저장 로직
+            break;
+        case ID_FILE_LOAD:
+            // TODO: (Step 4) 맵 로드 로직
+            break;
+        case ID_ENV_DAY:
+            // TODO: (Step 3) 낮 조명 적용
+            break;
+        case ID_ENV_NIGHT:
+            // TODO: (Step 3) 밤 조명 적용
+            break;
         }
+        return 0; // 메시지 처리 완료
     }
+    }
+
     // 기본 처리는 부모 클래스(D3DApp)로 넘김
     return D3DApp::MsgProc(hwnd, msg, wParam, lParam);
 }
@@ -273,7 +274,7 @@ LRESULT TreeBillboardsApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 void TreeBillboardsApp::OnKeyboardInput(const GameTimer& gt)
 {
     const float dt = gt.DeltaTime();
-	const float cameraSpeed = 50.0f; // 카메라 이동 속도
+	const float cameraSpeed = 80.0f; // 카메라 이동 속도
 
     // [수정됨] 카메라 모드일 때 WASD 이동 제어 추가
     if (mCurrentMode == ToolMode::Camera)
@@ -548,5 +549,136 @@ void TreeBillboardsApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, cons
         cmdList->SetGraphicsRootConstantBufferView(3, matCBAddress);
 
         cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
+    }
+}
+
+// -------------------------------------------------------------------------
+// [Step 2] 픽킹 및 동적 나무 배치 구현부
+// -------------------------------------------------------------------------
+
+void TreeBillboardsApp::Pick(int sx, int sy)
+{
+    // 1. 화면 픽셀 좌표를 NDC 공간([-1, 1])으로 변환
+    // [수정됨] XMMATRIX 대신 XMFLOAT4X4를 반환하는 GetProj4x4f()를 사용하여 요소에 접근합니다.
+    float vx = (+2.0f * sx / mClientWidth - 1.0f) / mCamera.GetProj4x4f()(0, 0);
+    float vy = (-2.0f * sy / mClientHeight + 1.0f) / mCamera.GetProj4x4f()(1, 1);
+
+    // 2. View 공간에서의 Ray(광선) 정의
+    XMVECTOR rayOrigin = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+    XMVECTOR rayDir = XMVectorSet(vx, vy, 1.0f, 0.0f);
+
+    // 3. View 공간의 Ray를 World 공간으로 변환
+    XMMATRIX V = mCamera.GetView();
+    XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(V), V);
+
+    rayOrigin = XMVector3TransformCoord(rayOrigin, invView);
+    rayDir = XMVector3TransformNormal(rayDir, invView);
+    rayDir = XMVector3Normalize(rayDir);
+
+    // 4. Ray와 지형 평면(y=0 기준)의 교차점 근사 계산
+    float dirY = XMVectorGetY(rayDir);
+    if (abs(dirY) < 0.001f) return; // Ray가 수평(지형과 평행)이면 무시
+
+    float t = -XMVectorGetY(rayOrigin) / dirY;
+    if (t < 0.0f) return; // 교차점이 카메라 뒤편이면 무시
+
+    XMVECTOR hitPos = rayOrigin + t * rayDir;
+    float hitX = XMVectorGetX(hitPos);
+    float hitZ = XMVectorGetZ(hitPos);
+
+    // 지형의 범위(예: 50x50 이라면 -25 ~ 25)를 벗어났는지 확인
+    if (hitX < -25.0f || hitX > 25.0f || hitZ < -25.0f || hitZ > 25.0f)
+        return;
+
+    // [반영됨] 작성하신 Hills 네임스페이스를 활용하여 실제 지형의 높이(Y)를 가져옴
+    float hitY = Hills::GetHeight(hitX, hitZ);
+
+    // 5. 현재 선택된 툴 모드에 따라 오브젝트 배치
+    if (mCurrentMode == ToolMode::PlantTree)
+    {
+        PlantTreeAt(hitX, hitY, hitZ);
+    }
+}
+
+void TreeBillboardsApp::PlantTreeAt(float x, float y, float z)
+{
+    Vertex tree;
+    // 나무 중심의 높이를 적절히 띄워줍니다. (y + 4.0f)
+    tree.Pos = XMFLOAT3(x, y + 4.0f, z);
+
+    // [반영됨] 작성하신 Hills 네임스페이스를 활용하여 법선(Normal) 세팅
+    tree.Normal = Hills::GetNormal(x, z);
+
+    // [반영됨] 범용 Vertex를 사용하므로, TexC(XMFLOAT2) 필드를 빌보드 Size용으로 재활용합니다.
+    tree.TexC = XMFLOAT2(10.0f, 10.0f);
+
+    mTreeData.push_back(tree);
+
+    // 버퍼 갱신 함수 호출
+    RebuildTreeGeometry();
+}
+
+void TreeBillboardsApp::RebuildTreeGeometry()
+{
+    if (mTreeData.empty()) return;
+
+    // [개선됨] ResourceManager 수정 없이 RenderItemManager를 통해 지오메트리에 안전하게 접근합니다.
+    auto& treeRitems = mRenderItemManager.GetRitemLayer(RenderLayer::AlphaTestedTreeSprites);
+    if (treeRitems.empty()) return;
+
+    MeshGeometry* treeGeo = treeRitems[0]->Geo;
+    if (!treeGeo) return;
+
+    UINT vbByteSize = (UINT)mTreeData.size() * sizeof(Vertex);
+
+    // 포인트(빌보드) 개수만큼의 Index Buffer 동적 생성
+    std::vector<std::uint16_t> indices;
+    indices.resize(mTreeData.size());
+    for (std::uint16_t i = 0; i < (std::uint16_t)mTreeData.size(); ++i)
+        indices[i] = i;
+
+    UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
+
+    // 1. CPU 버퍼에 새로운 데이터 덮어쓰기
+    ThrowIfFailed(D3DCreateBlob(vbByteSize, &treeGeo->VertexBufferCPU));
+    CopyMemory(treeGeo->VertexBufferCPU->GetBufferPointer(), mTreeData.data(), vbByteSize);
+
+    ThrowIfFailed(D3DCreateBlob(ibByteSize, &treeGeo->IndexBufferCPU));
+    CopyMemory(treeGeo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
+
+    // 2. GPU 동기화 및 CommandList 리셋
+    FlushCommandQueue();
+    ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+
+    // 3. GPU 버퍼 (VertexBuffer, IndexBuffer) 재생성 및 업로드
+    treeGeo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
+        mCommandList.Get(), mTreeData.data(), vbByteSize, treeGeo->VertexBufferUploader);
+
+    treeGeo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
+        mCommandList.Get(), indices.data(), ibByteSize, treeGeo->IndexBufferUploader);
+
+    // 4. 지오메트리 메타데이터 갱신
+    treeGeo->VertexByteStride = sizeof(Vertex);
+    treeGeo->VertexBufferByteSize = vbByteSize;
+    treeGeo->IndexFormat = DXGI_FORMAT_R16_UINT;
+    treeGeo->IndexBufferByteSize = ibByteSize;
+
+    treeGeo->DrawArgs["points"].IndexCount = (UINT)mTreeData.size();
+    //treeGeo->DrawArgs["points"].VertexCount = (UINT)mTreeData.size();
+    treeGeo->DrawArgs["points"].StartIndexLocation = 0;
+    treeGeo->DrawArgs["points"].BaseVertexLocation = 0;
+
+    // 5. CommandList 실행 및 대기
+    ThrowIfFailed(mCommandList->Close());
+    ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
+    mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+    FlushCommandQueue();
+
+    // 6. 렌더 아이템들의 렌더링(Draw) 카운트 갱신
+    for (auto& e : treeRitems)
+    {
+        e->IndexCount = (UINT)mTreeData.size();
+        e->StartIndexLocation = 0;
+        e->BaseVertexLocation = 0;
     }
 }
