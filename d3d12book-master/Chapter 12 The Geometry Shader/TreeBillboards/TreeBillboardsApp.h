@@ -4,6 +4,7 @@
 #include "../../Common/MathHelper.h"
 #include "../../Common/UploadBuffer.h"
 #include "../../Common/GeometryGenerator.h"
+#include "../../Common/Camera.h" // Camera 헤더 추가
 #include "FrameResource.h"
 #include "Waves.h"
 
@@ -12,12 +13,23 @@
 #include "ShaderManager.h"
 #include "RenderItemManager.h"
 
+ // 메뉴 리소스 ID 인클루드
+#include "resource.h"
+
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "D3D12.lib")
+
+// 툴의 상태를 나타내는 열거형 선언
+enum class ToolMode
+{
+    Camera,
+    PlantTree,
+    BuildFence
+};
 
 class TreeBillboardsApp : public D3DApp
 {
@@ -37,6 +49,9 @@ private:
     virtual void OnMouseDown(WPARAM btnState, int x, int y)override;
     virtual void OnMouseUp(WPARAM btnState, int x, int y)override;
     virtual void OnMouseMove(WPARAM btnState, int x, int y)override;
+
+    // 메뉴 이벤트 처리를 위한 가상 함수 오버라이드
+    virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 
     void OnKeyboardInput(const GameTimer& gt);
     void UpdateCamera(const GameTimer& gt);
@@ -69,13 +84,13 @@ private:
 
     PassConstants mMainPassCB;
 
-    XMFLOAT3 mEyePos = { 0.0f, 0.0f, 0.0f };
-    XMFLOAT4X4 mView = MathHelper::Identity4x4();
-    XMFLOAT4X4 mProj = MathHelper::Identity4x4();
+    // [수정됨] 기존 구면 좌표계 및 행렬 변수를 Camera 객체로 대체
+    Camera mCamera;
 
-    float mTheta = 1.5f * XM_PI;
-    float mPhi = XM_PIDIV2 - 0.1f;
-    float mRadius = 50.0f;
+    UINT mTreeCount = 0;
+
+    // 현재 선택된 툴 모드 상태 변수
+    ToolMode mCurrentMode = ToolMode::Camera;
 
     POINT mLastMousePos;
 };
