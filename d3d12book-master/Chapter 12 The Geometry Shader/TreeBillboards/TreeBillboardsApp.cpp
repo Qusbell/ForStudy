@@ -236,37 +236,36 @@ LRESULT TreeBillboardsApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 {
     switch (msg)
     {
-    case WM_COMMAND:
-    {
-        int wmId = LOWORD(wParam);
-        switch (wmId)
+        case WM_COMMAND:
         {
-        case ID_MODE_CAMERA:
-            mCurrentMode = ToolMode::Camera;
-            break;
-        case ID_MODE_PLANT_TREE:
-            mCurrentMode = ToolMode::PlantTree;
-            break;
-        case ID_MODE_BUILD_FENCE:
-            mCurrentMode = ToolMode::BuildFence;
-            break;
-        case ID_FILE_SAVE:
-            // TODO: (Step 4) 맵 저장 로직
-            break;
-        case ID_FILE_LOAD:
-            // TODO: (Step 4) 맵 로드 로직
-            break;
-        case ID_ENV_DAY:
-            // TODO: (Step 3) 낮 조명 적용
-            break;
-        case ID_ENV_NIGHT:
-            // TODO: (Step 3) 밤 조명 적용
-            break;
+            int wmId = LOWORD(wParam);
+            switch (wmId)
+            {
+            case ID_MODE_CAMERA:
+                mCurrentMode = ToolMode::Camera;
+                break;
+            case ID_MODE_PLANT_TREE:
+                mCurrentMode = ToolMode::PlantTree;
+                break;
+            case ID_MODE_BUILD_FENCE:
+                mCurrentMode = ToolMode::BuildFence;
+                break;
+            case ID_FILE_SAVE:
+                // TODO: (Step 4) 맵 저장 로직
+                break;
+            case ID_FILE_LOAD:
+                // TODO: (Step 4) 맵 로드 로직
+                break;
+            case ID_ENV_DAY:
+                // TODO: (Step 3) 낮 조명 적용
+                break;
+            case ID_ENV_NIGHT:
+                // TODO: (Step 3) 밤 조명 적용
+                break;
+            }
+            return 0; // 메시지 처리 완료
         }
-        return 0; // 메시지 처리 완료
     }
-    }
-
     // 기본 처리는 부모 클래스(D3DApp)로 넘김
     return D3DApp::MsgProc(hwnd, msg, wParam, lParam);
 }
@@ -274,21 +273,22 @@ LRESULT TreeBillboardsApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
 void TreeBillboardsApp::OnKeyboardInput(const GameTimer& gt)
 {
     const float dt = gt.DeltaTime();
+	const float cameraSpeed = 50.0f; // 카메라 이동 속도
 
     // [수정됨] 카메라 모드일 때 WASD 이동 제어 추가
     if (mCurrentMode == ToolMode::Camera)
     {
         if (GetAsyncKeyState('W') & 0x8000)
-            mCamera.Walk(20.0f * dt);
+            mCamera.Walk(cameraSpeed * dt);
 
         if (GetAsyncKeyState('S') & 0x8000)
-            mCamera.Walk(-20.0f * dt);
+            mCamera.Walk(-cameraSpeed * dt);
 
         if (GetAsyncKeyState('A') & 0x8000)
-            mCamera.Strafe(-20.0f * dt);
+            mCamera.Strafe(-cameraSpeed * dt);
 
         if (GetAsyncKeyState('D') & 0x8000)
-            mCamera.Strafe(20.0f * dt);
+            mCamera.Strafe(cameraSpeed * dt);
     }
 }
 

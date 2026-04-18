@@ -5,6 +5,7 @@
 #include "Waves.h"
 #include <array>
 
+
 ResourceManager::ResourceManager()
 {
 }
@@ -120,8 +121,8 @@ void ResourceManager::BuildLandGeometry(ID3D12GraphicsCommandList* cmdList)
     {
         auto& p = grid.Vertices[i].Position;
         vertices[i].Pos = p;
-        vertices[i].Pos.y = GetHillsHeight(p.x, p.z);
-        vertices[i].Normal = GetHillsNormal(p.x, p.z);
+        vertices[i].Pos.y = Hills::GetHeight(p.x, p.z);
+        vertices[i].Normal = Hills::GetNormal(p.x, p.z);
         vertices[i].TexC = grid.Vertices[i].TexC;
     }
 
@@ -176,7 +177,7 @@ void ResourceManager::BuildTreeSpritesGeometry(ID3D12GraphicsCommandList* cmdLis
     {
         float x = MathHelper::RandF(-45.0f, 45.0f);
         float z = MathHelper::RandF(-45.0f, 45.0f);
-        float y = GetHillsHeight(x, z);
+        float y = Hills::GetHeight(x, z);
 
         // Move tree slightly above land height.
         y += 8.0f;
@@ -218,20 +219,18 @@ void ResourceManager::BuildMaterial(std::string name, int matCBIndex, int diffus
     mMaterials[name] = std::move(mat);
 }
 
-float ResourceManager::GetHillsHeight(float x, float z) const
+float Hills::GetHeight(float x, float z)
 {
     return 0.3f * (z * sinf(0.1f * x) + x * cosf(0.1f * z));
 }
 
-DirectX::XMFLOAT3 ResourceManager::GetHillsNormal(float x, float z) const
+DirectX::XMFLOAT3 Hills::GetNormal(float x, float z)
 {
     DirectX::XMFLOAT3 n(
         -0.03f * z * cosf(0.1f * x) - 0.3f * cosf(0.1f * z),
         1.0f,
         -0.3f * sinf(0.1f * x) + 0.03f * x * sinf(0.1f * z));
-
     DirectX::XMVECTOR unitNormal = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&n));
     DirectX::XMStoreFloat3(&n, unitNormal);
-
     return n;
 }

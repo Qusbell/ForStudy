@@ -8,6 +8,14 @@
 
 class Waves;
 
+namespace Hills
+{
+    float GetHeight(float x, float z);
+
+    DirectX::XMFLOAT3 GetNormal(float x, float z);
+}
+
+
 class ResourceManager
 {
 public:
@@ -42,10 +50,6 @@ public:
     std::unordered_map<std::string, std::unique_ptr<Texture>>& GetTextures() { return mTextures; }
     std::unordered_map<std::string, std::unique_ptr<MeshGeometry>>& GetGeometries() { return mGeometries; }
     std::unordered_map<std::string, std::unique_ptr<Material>>& GetMaterials() { return mMaterials; }
-
-private:
-    float GetHillsHeight(float x, float z) const;
-    DirectX::XMFLOAT3 GetHillsNormal(float x, float z) const;
 
 private:
     ID3D12Device* md3dDevice = nullptr;
