@@ -19,48 +19,26 @@ void ResourceManager::Initialize(ID3D12Device* device)
     md3dDevice = device;
 }
 
+// 테스트 용도: 단수형 메서드를 재사용하여 하드코딩된 텍스처들을 일괄 로드합니다.
 void ResourceManager::LoadTextures(ID3D12GraphicsCommandList* cmdList)
 {
-    auto woodCrateTex = std::make_unique<Texture>();
-    woodCrateTex->Name = "woodCrateTex";
-    woodCrateTex->Filename = L"../../Textures/WoodCrate01.dds";
-    ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice,
-        cmdList, woodCrateTex->Filename.c_str(),
-        woodCrateTex->Resource, woodCrateTex->UploadHeap));
+    LoadTexture(cmdList, "woodCrateTex", L"../../Textures/WoodCrate01.dds");
+    LoadTexture(cmdList, "grassTex", L"../../Textures/grass.dds");
+    LoadTexture(cmdList, "waterTex", L"../../Textures/water1.dds");
+    LoadTexture(cmdList, "fenceTex", L"../../Textures/WireFence.dds");
+    LoadTexture(cmdList, "treeArrayTex", L"../../Textures/treeArray2.dds");
+}
 
-    auto grassTex = std::make_unique<Texture>();
-    grassTex->Name = "grassTex";
-    grassTex->Filename = L"../../Textures/grass.dds";
+void ResourceManager::LoadTexture(ID3D12GraphicsCommandList* cmdList, std::string name, std::wstring filename)
+{
+    auto tex = std::make_unique<Texture>();
+    tex->Name = name;
+    tex->Filename = filename;
     ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice,
-        cmdList, grassTex->Filename.c_str(),
-        grassTex->Resource, grassTex->UploadHeap));
+        cmdList, tex->Filename.c_str(),
+        tex->Resource, tex->UploadHeap));
 
-    auto waterTex = std::make_unique<Texture>();
-    waterTex->Name = "waterTex";
-    waterTex->Filename = L"../../Textures/water1.dds";
-    ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice,
-        cmdList, waterTex->Filename.c_str(),
-        waterTex->Resource, waterTex->UploadHeap));
-
-    auto fenceTex = std::make_unique<Texture>();
-    fenceTex->Name = "fenceTex";
-    fenceTex->Filename = L"../../Textures/WireFence.dds";
-    ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice,
-        cmdList, fenceTex->Filename.c_str(),
-        fenceTex->Resource, fenceTex->UploadHeap));
-
-    auto treeArrayTex = std::make_unique<Texture>();
-    treeArrayTex->Name = "treeArrayTex";
-    treeArrayTex->Filename = L"../../Textures/treeArray2.dds";
-    ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice,
-        cmdList, treeArrayTex->Filename.c_str(),
-        treeArrayTex->Resource, treeArrayTex->UploadHeap));
-
-    mTextures[woodCrateTex->Name] = std::move(woodCrateTex);
-    mTextures[grassTex->Name] = std::move(grassTex);
-    mTextures[waterTex->Name] = std::move(waterTex);
-    mTextures[fenceTex->Name] = std::move(fenceTex);
-    mTextures[treeArrayTex->Name] = std::move(treeArrayTex);
+    mTextures[name] = std::move(tex);
 }
 
 void ResourceManager::BuildBoxGeometry(ID3D12GraphicsCommandList* cmdList)
@@ -278,45 +256,26 @@ void ResourceManager::BuildTreeSpritesGeometry(ID3D12GraphicsCommandList* cmdLis
     mGeometries["treeSpritesGeo"] = std::move(geo);
 }
 
-// Step 1-3: 기존 App 클래스에서 이동된 재질 생성 로직
+// 테스트 용도: 단수형 메서드를 재사용하여 하드코딩된 재질들을 일괄 생성합니다.
 void ResourceManager::BuildMaterials()
 {
-    auto grass = std::make_unique<Material>();
-    grass->Name = "grass";
-    grass->MatCBIndex = 0;
-    grass->DiffuseSrvHeapIndex = 0;
-    grass->DiffuseAlbedo = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-    grass->FresnelR0 = DirectX::XMFLOAT3(0.01f, 0.01f, 0.01f);
-    grass->Roughness = 0.125f;
+    BuildMaterial("grass", 0, 0, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), DirectX::XMFLOAT3(0.01f, 0.01f, 0.01f), 0.125f);
+    BuildMaterial("water", 1, 1, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 0.5f), DirectX::XMFLOAT3(0.1f, 0.1f, 0.1f), 0.0f);
+    BuildMaterial("wirefence", 2, 2, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), DirectX::XMFLOAT3(0.02f, 0.02f, 0.02f), 0.25f);
+    BuildMaterial("treeSprites", 3, 3, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), DirectX::XMFLOAT3(0.01f, 0.01f, 0.01f), 0.125f);
+}
 
-    auto water = std::make_unique<Material>();
-    water->Name = "water";
-    water->MatCBIndex = 1;
-    water->DiffuseSrvHeapIndex = 1;
-    water->DiffuseAlbedo = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 0.5f);
-    water->FresnelR0 = DirectX::XMFLOAT3(0.1f, 0.1f, 0.1f);
-    water->Roughness = 0.0f;
+void ResourceManager::BuildMaterial(std::string name, int matCBIndex, int diffuseSrvHeapIndex, DirectX::XMFLOAT4 diffuseAlbedo, DirectX::XMFLOAT3 fresnelR0, float roughness)
+{
+    auto mat = std::make_unique<Material>();
+    mat->Name = name;
+    mat->MatCBIndex = matCBIndex;
+    mat->DiffuseSrvHeapIndex = diffuseSrvHeapIndex;
+    mat->DiffuseAlbedo = diffuseAlbedo;
+    mat->FresnelR0 = fresnelR0;
+    mat->Roughness = roughness;
 
-    auto wirefence = std::make_unique<Material>();
-    wirefence->Name = "wirefence";
-    wirefence->MatCBIndex = 2;
-    wirefence->DiffuseSrvHeapIndex = 2;
-    wirefence->DiffuseAlbedo = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-    wirefence->FresnelR0 = DirectX::XMFLOAT3(0.02f, 0.02f, 0.02f);
-    wirefence->Roughness = 0.25f;
-
-    auto treeSprites = std::make_unique<Material>();
-    treeSprites->Name = "treeSprites";
-    treeSprites->MatCBIndex = 3;
-    treeSprites->DiffuseSrvHeapIndex = 3;
-    treeSprites->DiffuseAlbedo = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-    treeSprites->FresnelR0 = DirectX::XMFLOAT3(0.01f, 0.01f, 0.01f);
-    treeSprites->Roughness = 0.125f;
-
-    mMaterials["grass"] = std::move(grass);
-    mMaterials["water"] = std::move(water);
-    mMaterials["wirefence"] = std::move(wirefence);
-    mMaterials["treeSprites"] = std::move(treeSprites);
+    mMaterials[name] = std::move(mat);
 }
 
 float ResourceManager::GetHillsHeight(float x, float z) const
