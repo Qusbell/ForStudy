@@ -62,6 +62,10 @@ public:
     std::unordered_map<std::string, std::unique_ptr<MeshGeometry>>& GetGeometries() { return mGeometries; }
     std::unordered_map<std::string, std::unique_ptr<Material>>& GetMaterials() { return mMaterials; }
 
+    // [추가] 파일 저장/로드를 위해 나무 데이터 배열에 접근하는 Getter / Setter
+    const std::vector<TreeSpriteVertex>& GetTrees() const { return mTreeVertices; }
+    void SetTrees(const std::vector<TreeSpriteVertex>& trees) { mTreeVertices = trees; }
+
 private:
     ID3D12Device* md3dDevice = nullptr;
 

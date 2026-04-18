@@ -61,6 +61,12 @@ private:
     // 메뉴 이벤트 처리를 위한 가상 함수 오버라이드
     virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 
+    // [추가됨] 맵 저장, 로드, 및 파일 대화상자 함수 선언
+    void SaveMapData(const std::wstring& filename);
+    void LoadMapData(const std::wstring& filename);
+    std::wstring OpenFileDialog();
+    std::wstring SaveFileDialog();
+
     // [추가] 환경 모드 제어 함수
     void SetEnvironmentMode(EnvironmentMode mode);
 

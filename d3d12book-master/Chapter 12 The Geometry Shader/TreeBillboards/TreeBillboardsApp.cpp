@@ -239,6 +239,8 @@ LRESULT TreeBillboardsApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
     case WM_COMMAND:
     {
         int wmId = LOWORD(wParam);
+        std::wstring filepath;
+
         switch (wmId)
         {
         case ID_MODE_CAMERA:
@@ -251,10 +253,14 @@ LRESULT TreeBillboardsApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             mCurrentMode = ToolMode::BuildFence;
             break;
         case ID_FILE_SAVE:
-            // TODO: (Step 4) 맵 저장 로직
+            // 대화상자를 열어 경로를 얻고 저장 함수 호출
+            filepath = SaveFileDialog();
+            if (!filepath.empty()) { SaveMapData(filepath); }
             break;
         case ID_FILE_LOAD:
-            // TODO: (Step 4) 맵 로드 로직
+            // 대화상자를 열어 경로를 얻고 로드 함수 호출
+            filepath = OpenFileDialog();
+            if (!filepath.empty()) { LoadMapData(filepath); }
             break;
         case ID_ENV_DAY:
             // [수정됨] 낮 모드 적용
@@ -272,6 +278,134 @@ LRESULT TreeBillboardsApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
     // 기본 처리는 부모 클래스(D3DApp)로 넘김
     return D3DApp::MsgProc(hwnd, msg, wParam, lParam);
 }
+
+void TreeBillboardsApp::SaveMapData(const std::wstring& filename)
+{
+    std::wofstream fout(filename);
+    if (!fout.is_open())
+    {
+        MessageBox(mhMainWnd, L"파일을 저장할 수 없습니다.", L"Error", MB_OK);
+        return;
+    }
+
+    // [수정됨] ResourceManager에서 현재 나무 배열을 통째로 받아옵니다.
+    const auto& trees = mResourceManager.GetTrees();
+
+    fout << L"TREES\n";
+    fout << trees.size() << L"\n";
+    for (const auto& tree : trees)
+    {
+        // [수정됨] TreeSpriteVertex 구조체에 맞게 위치(Pos)와 크기(Size)만 저장
+        fout << tree.Pos.x << L" " << tree.Pos.y << L" " << tree.Pos.z << L" "
+            << tree.Size.x << L" " << tree.Size.y << L"\n";
+    }
+
+    fout.close();
+    MessageBox(mhMainWnd, L"맵 저장이 완료되었습니다.", L"Save Complete", MB_OK);
+}
+
+void TreeBillboardsApp::LoadMapData(const std::wstring& filename)
+{
+    std::wifstream fin(filename);
+    if (!fin.is_open())
+    {
+        MessageBox(mhMainWnd, L"파일을 열 수 없습니다.", L"Error", MB_OK);
+        return;
+    }
+
+    std::wstring header;
+    size_t count = 0;
+
+    fin >> header;
+    if (header == L"TREES")
+    {
+        fin >> count;
+        // [수정됨] 로드할 임시 배열 생성
+        std::vector<TreeSpriteVertex> loadedTrees(count);
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            // 위치와 크기 정보를 차례대로 읽어들임
+            fin >> loadedTrees[i].Pos.x >> loadedTrees[i].Pos.y >> loadedTrees[i].Pos.z
+                >> loadedTrees[i].Size.x >> loadedTrees[i].Size.y;
+        }
+
+        // [수정됨] ResourceManager에 로드된 데이터를 통째로 덮어씁니다.
+        mResourceManager.SetTrees(loadedTrees);
+    }
+
+    fin.close();
+
+    // [수정됨] 데이터가 교체되었으니 GPU 동기화 후 버퍼를 재구축합니다.
+    FlushCommandQueue();
+    ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+
+    // 리소스 매니저에게 GPU 버퍼 갱신 위임
+    mResourceManager.UpdateTreeGeometryBuffer(mCommandList.Get());
+
+    ThrowIfFailed(mCommandList->Close());
+    ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
+    mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+    FlushCommandQueue();
+
+    // 렌더 아이템 매니저의 Draw 카운트 갱신
+    auto& treeRitems = mRenderItemManager.GetRitemLayer(RenderLayer::AlphaTestedTreeSprites);
+    for (auto& e : treeRitems)
+    {
+        e->IndexCount = mResourceManager.GetTreeCount();
+    }
+
+    MessageBox(mhMainWnd, L"맵을 성공적으로 불러왔습니다.", L"Load Complete", MB_OK);
+}
+
+
+std::wstring TreeBillboardsApp::SaveFileDialog()
+{
+    OPENFILENAME ofn;
+    WCHAR szFile[260] = { 0 };
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = mhMainWnd;
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = L"Map Files\0*.map\0Text Files\0*.txt\0All Files\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrDefExt = L"map";
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
+
+    if (GetSaveFileName(&ofn) == TRUE)
+    {
+        return std::wstring(ofn.lpstrFile);
+    }
+    return L""; // 취소 시 빈 문자열 반환
+}
+
+std::wstring TreeBillboardsApp::OpenFileDialog()
+{
+    OPENFILENAME ofn;
+    WCHAR szFile[260] = { 0 };
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = mhMainWnd;
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = L"Map Files\0*.map\0Text Files\0*.txt\0All Files\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+    if (GetOpenFileName(&ofn) == TRUE)
+    {
+        return std::wstring(ofn.lpstrFile);
+    }
+    return L""; // 취소 시 빈 문자열 반환
+}
+
+
+
+
+
 
 void TreeBillboardsApp::SetEnvironmentMode(EnvironmentMode mode)
 {
