@@ -49,6 +49,7 @@ public:
     void BuildWavesGeometry(ID3D12GraphicsCommandList* cmdList, Waves* waves);
     void BuildTreeSpritesGeometry(ID3D12GraphicsCommandList* cmdList);
 
+	// [추가됨] 나무 스프라이트 관리를 위한 메서드
     void AddTree(float x, float y, float z);
     void UpdateTreeGeometryBuffer(ID3D12GraphicsCommandList* cmdList);
     UINT GetTreeCount() const { return (UINT)mTreeVertices.size(); }

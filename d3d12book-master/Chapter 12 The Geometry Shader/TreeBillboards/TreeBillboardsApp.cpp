@@ -257,10 +257,12 @@ LRESULT TreeBillboardsApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
             // TODO: (Step 4) 맵 로드 로직
             break;
         case ID_ENV_DAY:
-            // TODO: (Step 3) 낮 조명 적용
+            // [수정됨] 낮 모드 적용
+            SetEnvironmentMode(EnvironmentMode::Day);
             break;
         case ID_ENV_NIGHT:
-            // TODO: (Step 3) 밤 조명 적용
+            // [수정됨] 밤 모드 적용
+            SetEnvironmentMode(EnvironmentMode::Night);
             break;
         }
         return 0; // 메시지 처리 완료
@@ -271,6 +273,22 @@ LRESULT TreeBillboardsApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
     return D3DApp::MsgProc(hwnd, msg, wParam, lParam);
 }
 
+void TreeBillboardsApp::SetEnvironmentMode(EnvironmentMode mode)
+{
+    mEnvMode = mode;
+
+    if (mEnvMode == EnvironmentMode::Day)
+    {
+        // 낮: 밝은 파란색 하늘
+        mClearColor = { 0.2f, 0.694f, 0.996f, 1.0f };
+    }
+    else
+    {
+        // 밤: 어두운 남색/검은색 계열 하늘
+        mClearColor = { 0.05f, 0.05f, 0.15f, 1.0f };
+    }
+}
+
 void TreeBillboardsApp::OnKeyboardInput(const GameTimer& gt)
 {
     const float dt = gt.DeltaTime();
@@ -279,17 +297,10 @@ void TreeBillboardsApp::OnKeyboardInput(const GameTimer& gt)
     // [수정됨] 카메라 모드일 때 WASD 이동 제어 추가
     if (mCurrentMode == ToolMode::Camera)
     {
-        if (GetAsyncKeyState('W') & 0x8000)
-            mCamera.Walk(cameraSpeed * dt);
-
-        if (GetAsyncKeyState('S') & 0x8000)
-            mCamera.Walk(-cameraSpeed * dt);
-
-        if (GetAsyncKeyState('A') & 0x8000)
-            mCamera.Strafe(-cameraSpeed * dt);
-
-        if (GetAsyncKeyState('D') & 0x8000)
-            mCamera.Strafe(cameraSpeed * dt);
+        if (GetAsyncKeyState('W') & 0x8000) { mCamera.Walk(cameraSpeed * dt); }
+        if (GetAsyncKeyState('S') & 0x8000) { mCamera.Walk(-cameraSpeed * dt); }
+        if (GetAsyncKeyState('A') & 0x8000) { mCamera.Strafe(-cameraSpeed * dt); }
+        if (GetAsyncKeyState('D') & 0x8000) { mCamera.Strafe(cameraSpeed * dt); }
     }
 }
 
@@ -404,13 +415,32 @@ void TreeBillboardsApp::UpdateMainPassCB(const GameTimer& gt)
     mMainPassCB.FarZ = 1000.0f;
     mMainPassCB.TotalTime = gt.TotalTime();
     mMainPassCB.DeltaTime = gt.DeltaTime();
-    mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-    mMainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-    mMainPassCB.Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
-    mMainPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-    mMainPassCB.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
-    mMainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-    mMainPassCB.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
+
+    // [수정됨] 현재 환경 모드(낮/밤)에 따라 조명(Lighting) 강도와 방향을 다르게 설정합니다.
+    if (mEnvMode == EnvironmentMode::Day)
+    {
+        // 낮: 기존과 동일하게 밝은 태양빛과 주변광
+        mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+        mMainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
+        mMainPassCB.Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
+        mMainPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
+        mMainPassCB.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
+        mMainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
+        mMainPassCB.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
+    }
+    else
+    {
+        // 밤: 어둡고 푸르스름한 달빛 느낌
+        mMainPassCB.AmbientLight = { 0.05f, 0.05f, 0.1f, 1.0f }; // 아주 어두운 주변광
+
+        // 메인 조명(Lights[0])을 달빛으로 취급하여 방향과 색상 변경
+        mMainPassCB.Lights[0].Direction = { -0.57735f, -0.3f, 0.57735f };
+        mMainPassCB.Lights[0].Strength = { 0.1f, 0.1f, 0.3f }; // 푸르고 약한 빛
+
+        // 보조 조명들은 밤이므로 끕니다 (Strength를 0으로)
+        mMainPassCB.Lights[1].Strength = { 0.0f, 0.0f, 0.0f };
+        mMainPassCB.Lights[2].Strength = { 0.0f, 0.0f, 0.0f };
+    }
 
     auto currPassCB = mCurrFrameResource->PassCB.get();
     currPassCB->CopyData(0, mMainPassCB);

@@ -31,6 +31,14 @@ enum class ToolMode
     BuildFence
 };
 
+// [추가] 환경(낮/밤) 상태를 나타내는 열거형
+enum class EnvironmentMode
+{
+    Day,
+    Night
+};
+
+
 class TreeBillboardsApp : public D3DApp
 {
 public:
@@ -52,6 +60,9 @@ private:
 
     // 메뉴 이벤트 처리를 위한 가상 함수 오버라이드
     virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+
+    // [추가] 환경 모드 제어 함수
+    void SetEnvironmentMode(EnvironmentMode mode);
 
     void OnKeyboardInput(const GameTimer& gt);
     void UpdateCamera(const GameTimer& gt);
@@ -91,6 +102,11 @@ private:
 
     // 현재 선택된 툴 모드 상태 변수
     ToolMode mCurrentMode = ToolMode::Camera;
+
+    // [추가] 현재 환경 모드 및 배경색 변수
+    EnvironmentMode mEnvMode = EnvironmentMode::Day;
+    std::array<float, 4> mClearColor = { 0.2f, 0.694f, 0.996f, 1.0f }; // 기본: 낮(하늘색)
+
 
     POINT mLastMousePos;
 
