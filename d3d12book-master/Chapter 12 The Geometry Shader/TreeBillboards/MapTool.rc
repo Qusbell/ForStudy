@@ -1,0 +1,27 @@
+#include "resource.h"
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MAIN_MENU MENU
+BEGIN
+POPUP "File"
+BEGIN
+MENUITEM "Save Map",                    ID_FILE_SAVE
+MENUITEM "Load Map",                    ID_FILE_LOAD
+END
+POPUP "Tool Mode"
+BEGIN
+MENUITEM "Camera Mode",                 ID_MODE_CAMERA
+MENUITEM "Plant Tree",                  ID_MODE_PLANT_TREE
+MENUITEM "Build Fence",                 ID_MODE_BUILD_FENCE
+END
+POPUP "Environment"
+BEGIN
+MENUITEM "Day",                         ID_ENV_DAY
+MENUITEM "Night",                       ID_ENV_NIGHT
+END
+END
