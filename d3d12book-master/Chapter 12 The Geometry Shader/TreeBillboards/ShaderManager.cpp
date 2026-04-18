@@ -18,10 +18,7 @@ void ShaderManager::BuildRootSignature()
     CD3DX12_DESCRIPTOR_RANGE texTable;
     texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 
-    // Root parameter can be a table, root descriptor or root constants.
     CD3DX12_ROOT_PARAMETER slotRootParameter[4];
-
-    // Perfomance TIP: Order from most frequent to least frequent.
     slotRootParameter[0].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
     slotRootParameter[1].InitAsConstantBufferView(0);
     slotRootParameter[2].InitAsConstantBufferView(1);
@@ -29,12 +26,10 @@ void ShaderManager::BuildRootSignature()
 
     auto staticSamplers = GetStaticSamplers();
 
-    // A root signature is an array of root parameters.
     CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(4, slotRootParameter,
         (UINT)staticSamplers.size(), staticSamplers.data(),
         D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
-    // create a root signature with a single slot which points to a descriptor range consisting of a single constant buffer
     Microsoft::WRL::ComPtr<ID3DBlob> serializedRootSig = nullptr;
     Microsoft::WRL::ComPtr<ID3DBlob> errorBlob = nullptr;
     HRESULT hr = D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1,
@@ -53,67 +48,64 @@ void ShaderManager::BuildRootSignature()
         IID_PPV_ARGS(mRootSignature.GetAddressOf())));
 }
 
+// ----------------------------------------------------------------------
+// 단수형 팩토리 메서드 구현
+// ----------------------------------------------------------------------
+void ShaderManager::CompileShader(std::string name, std::wstring filename, const D3D_SHADER_MACRO* defines, std::string entrypoint, std::string target)
+{
+    mShaders[name] = d3dUtil::CompileShader(filename.c_str(), defines, entrypoint, target);
+}
+
+void ShaderManager::AddInputLayout(std::string name, const std::vector<D3D12_INPUT_ELEMENT_DESC>& inputLayout)
+{
+    mInputLayouts[name] = inputLayout;
+}
+
+void ShaderManager::BuildPSO(std::string name, const D3D12_GRAPHICS_PIPELINE_STATE_DESC& psoDesc)
+{
+    ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[name])));
+}
+
+// ----------------------------------------------------------------------
+// 래퍼 메서드: 내부적으로 단수형 메서드를 호출
+// ----------------------------------------------------------------------
 void ShaderManager::BuildInputLayouts()
 {
-    mStdInputLayout =
-    {
+    AddInputLayout("std", {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    };
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+        });
 
-    mTreeSpriteInputLayout =
-    {
+    AddInputLayout("treeSprite", {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "SIZE", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    };
+        { "SIZE", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+        });
 }
 
 void ShaderManager::BuildShaders()
 {
-    const D3D_SHADER_MACRO defines[] =
-    {
-        "FOG", "1",
-        NULL, NULL
-    };
+    const D3D_SHADER_MACRO defines[] = { "FOG", "1", NULL, NULL };
+    const D3D_SHADER_MACRO alphaTestDefines[] = { "FOG", "1", "ALPHA_TEST", "1", NULL, NULL };
 
-    const D3D_SHADER_MACRO alphaTestDefines[] =
-    {
-        "FOG", "1",
-        "ALPHA_TEST", "1",
-        NULL, NULL
-    };
+    CompileShader("standardVS", L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_0");
+    CompileShader("opaquePS", L"Shaders\\Default.hlsl", defines, "PS", "ps_5_0");
+    CompileShader("alphaTestedPS", L"Shaders\\Default.hlsl", alphaTestDefines, "PS", "ps_5_0");
 
-    mShaders["standardVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_0");
-    mShaders["opaquePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", defines, "PS", "ps_5_0");
-    mShaders["alphaTestedPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", alphaTestDefines, "PS", "ps_5_0");
-
-    mShaders["treeSpriteVS"] = d3dUtil::CompileShader(L"Shaders\\TreeSprite.hlsl", nullptr, "VS", "vs_5_0");
-    mShaders["treeSpriteGS"] = d3dUtil::CompileShader(L"Shaders\\TreeSprite.hlsl", nullptr, "GS", "gs_5_0");
-    mShaders["treeSpritePS"] = d3dUtil::CompileShader(L"Shaders\\TreeSprite.hlsl", alphaTestDefines, "PS", "ps_5_0");
+    CompileShader("treeSpriteVS", L"Shaders\\TreeSprite.hlsl", nullptr, "VS", "vs_5_0");
+    CompileShader("treeSpriteGS", L"Shaders\\TreeSprite.hlsl", nullptr, "GS", "gs_5_0");
+    CompileShader("treeSpritePS", L"Shaders\\TreeSprite.hlsl", alphaTestDefines, "PS", "ps_5_0");
 }
 
-// Step 1-6: TreeBillboardsApp.cpp에서 그대로 추출된 PSO 생성 로직
 void ShaderManager::BuildPSOs(DXGI_FORMAT backBufferFormat, DXGI_FORMAT depthStencilFormat, bool m4xMsaaState, UINT m4xMsaaQuality)
 {
+    // 1. Opaque PSO 빌드
     D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
-
-    //
-    // PSO for opaque objects.
-    //
     ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-    opaquePsoDesc.InputLayout = { mStdInputLayout.data(), (UINT)mStdInputLayout.size() };
+    opaquePsoDesc.InputLayout = { mInputLayouts["std"].data(), (UINT)mInputLayouts["std"].size() };
     opaquePsoDesc.pRootSignature = mRootSignature.Get();
-    opaquePsoDesc.VS =
-    {
-        reinterpret_cast<BYTE*>(mShaders["standardVS"]->GetBufferPointer()),
-        mShaders["standardVS"]->GetBufferSize()
-    };
-    opaquePsoDesc.PS =
-    {
-        reinterpret_cast<BYTE*>(mShaders["opaquePS"]->GetBufferPointer()),
-        mShaders["opaquePS"]->GetBufferSize()
-    };
+    opaquePsoDesc.VS = { reinterpret_cast<BYTE*>(mShaders["standardVS"]->GetBufferPointer()), mShaders["standardVS"]->GetBufferSize() };
+    opaquePsoDesc.PS = { reinterpret_cast<BYTE*>(mShaders["opaquePS"]->GetBufferPointer()), mShaders["opaquePS"]->GetBufferSize() };
     opaquePsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
     opaquePsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
     opaquePsoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
@@ -124,14 +116,11 @@ void ShaderManager::BuildPSOs(DXGI_FORMAT backBufferFormat, DXGI_FORMAT depthSte
     opaquePsoDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
     opaquePsoDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
     opaquePsoDesc.DSVFormat = depthStencilFormat;
-    ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&mPSOs["opaque"])));
 
-    //
-    // PSO for transparent objects
-    //
+    BuildPSO("opaque", opaquePsoDesc);
 
+    // 2. Transparent PSO 빌드
     D3D12_GRAPHICS_PIPELINE_STATE_DESC transparentPsoDesc = opaquePsoDesc;
-
     D3D12_RENDER_TARGET_BLEND_DESC transparencyBlendDesc;
     transparencyBlendDesc.BlendEnable = true;
     transparencyBlendDesc.LogicOpEnable = false;
@@ -143,99 +132,55 @@ void ShaderManager::BuildPSOs(DXGI_FORMAT backBufferFormat, DXGI_FORMAT depthSte
     transparencyBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
     transparencyBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
     transparencyBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
     transparentPsoDesc.BlendState.RenderTarget[0] = transparencyBlendDesc;
-    ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&transparentPsoDesc, IID_PPV_ARGS(&mPSOs["transparent"])));
 
-    //
-    // PSO for alpha tested objects
-    //
+    BuildPSO("transparent", transparentPsoDesc);
 
+    // 3. Alpha Tested PSO 빌드
     D3D12_GRAPHICS_PIPELINE_STATE_DESC alphaTestedPsoDesc = opaquePsoDesc;
-    alphaTestedPsoDesc.PS =
-    {
-        reinterpret_cast<BYTE*>(mShaders["alphaTestedPS"]->GetBufferPointer()),
-        mShaders["alphaTestedPS"]->GetBufferSize()
-    };
+    alphaTestedPsoDesc.PS = { reinterpret_cast<BYTE*>(mShaders["alphaTestedPS"]->GetBufferPointer()), mShaders["alphaTestedPS"]->GetBufferSize() };
     alphaTestedPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-    ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&alphaTestedPsoDesc, IID_PPV_ARGS(&mPSOs["alphaTested"])));
 
-    //
-    // PSO for tree sprites
-    //
+    BuildPSO("alphaTested", alphaTestedPsoDesc);
+
+    // 4. Tree Sprites PSO 빌드
     D3D12_GRAPHICS_PIPELINE_STATE_DESC treeSpritePsoDesc = opaquePsoDesc;
-    treeSpritePsoDesc.VS =
-    {
-        reinterpret_cast<BYTE*>(mShaders["treeSpriteVS"]->GetBufferPointer()),
-        mShaders["treeSpriteVS"]->GetBufferSize()
-    };
-    treeSpritePsoDesc.GS =
-    {
-        reinterpret_cast<BYTE*>(mShaders["treeSpriteGS"]->GetBufferPointer()),
-        mShaders["treeSpriteGS"]->GetBufferSize()
-    };
-    treeSpritePsoDesc.PS =
-    {
-        reinterpret_cast<BYTE*>(mShaders["treeSpritePS"]->GetBufferPointer()),
-        mShaders["treeSpritePS"]->GetBufferSize()
-    };
+    treeSpritePsoDesc.VS = { reinterpret_cast<BYTE*>(mShaders["treeSpriteVS"]->GetBufferPointer()), mShaders["treeSpriteVS"]->GetBufferSize() };
+    treeSpritePsoDesc.GS = { reinterpret_cast<BYTE*>(mShaders["treeSpriteGS"]->GetBufferPointer()), mShaders["treeSpriteGS"]->GetBufferSize() };
+    treeSpritePsoDesc.PS = { reinterpret_cast<BYTE*>(mShaders["treeSpritePS"]->GetBufferPointer()), mShaders["treeSpritePS"]->GetBufferSize() };
     treeSpritePsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
-    treeSpritePsoDesc.InputLayout = { mTreeSpriteInputLayout.data(), (UINT)mTreeSpriteInputLayout.size() };
+    treeSpritePsoDesc.InputLayout = { mInputLayouts["treeSprite"].data(), (UINT)mInputLayouts["treeSprite"].size() };
     treeSpritePsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 
-    ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&treeSpritePsoDesc, IID_PPV_ARGS(&mPSOs["treeSprites"])));
+    BuildPSO("treeSprites", treeSpritePsoDesc);
 }
 
 std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> ShaderManager::GetStaticSamplers()
 {
+    // (기존과 동일하므로 생략하지 않고 그대로 유지)
     const CD3DX12_STATIC_SAMPLER_DESC pointWrap(
-        0, // shaderRegister
-        D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
-        D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
-        D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
-        D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+        0, D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP);
 
     const CD3DX12_STATIC_SAMPLER_DESC pointClamp(
-        1, // shaderRegister
-        D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
-        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
-        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
-        D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+        1, D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
 
     const CD3DX12_STATIC_SAMPLER_DESC linearWrap(
-        2, // shaderRegister
-        D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
-        D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
-        D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
-        D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+        2, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP);
 
     const CD3DX12_STATIC_SAMPLER_DESC linearClamp(
-        3, // shaderRegister
-        D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
-        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
-        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
-        D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+        3, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
 
     const CD3DX12_STATIC_SAMPLER_DESC anisotropicWrap(
-        4, // shaderRegister
-        D3D12_FILTER_ANISOTROPIC, // filter
-        D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
-        D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
-        D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressW
-        0.0f,                              // mipLODBias
-        8);                                // maxAnisotropy
+        4, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 0.0f, 8);
 
     const CD3DX12_STATIC_SAMPLER_DESC anisotropicClamp(
-        5, // shaderRegister
-        D3D12_FILTER_ANISOTROPIC, // filter
-        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
-        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
-        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressW
-        0.0f,                              // mipLODBias
-        8);                                // maxAnisotropy
+        5, D3D12_FILTER_ANISOTROPIC, D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 0.0f, 8);
 
-    return {
-        pointWrap, pointClamp,
-        linearWrap, linearClamp,
-        anisotropicWrap, anisotropicClamp };
+    return { pointWrap, pointClamp, linearWrap, linearClamp, anisotropicWrap, anisotropicClamp };
 }
