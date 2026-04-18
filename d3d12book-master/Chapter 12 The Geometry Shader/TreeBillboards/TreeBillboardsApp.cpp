@@ -584,8 +584,8 @@ void TreeBillboardsApp::Pick(int sx, int sy)
     float hitZ = XMVectorGetZ(hitPos);
 
     // 지형의 범위(예: 50x50 이라면 -25 ~ 25)를 벗어났는지 확인
-    if (hitX < -25.0f || hitX > 25.0f || hitZ < -25.0f || hitZ > 25.0f)
-        return;
+	const float terrainHalfSize = 60.0f; // 지형의 절반 크기
+    if (hitX < -terrainHalfSize || hitX > terrainHalfSize || hitZ < -terrainHalfSize || hitZ > terrainHalfSize) { return; }
 
     // [반영됨] 작성하신 Hills 네임스페이스를 활용하여 실제 지형의 높이(Y)를 가져옴
     float hitY = Hills::GetHeight(hitX, hitZ);
@@ -623,94 +623,3 @@ void TreeBillboardsApp::PlantTreeAt(float x, float y, float z)
         e->IndexCount = mResourceManager.GetTreeCount();
     }
 }
-
-
-
-/*
-// -------------------------------------------------------------------------
-// [Step 2] 픽킹 및 동적 나무 배치 구현부
-// -------------------------------------------------------------------------
-
-void TreeBillboardsApp::PlantTreeAt(float x, float y, float z)
-{
-    Vertex tree;
-    // 나무 중심의 높이를 적절히 띄워줍니다. (y + 4.0f)
-    tree.Pos = XMFLOAT3(x, y + 4.0f, z);
-
-    // [반영됨] 작성하신 Hills 네임스페이스를 활용하여 법선(Normal) 세팅
-    tree.Normal = Hills::GetNormal(x, z);
-
-    // [반영됨] 범용 Vertex를 사용하므로, TexC(XMFLOAT2) 필드를 빌보드 Size용으로 재활용합니다.
-    tree.TexC = XMFLOAT2(10.0f, 10.0f);
-
-    mTreeData.push_back(tree);
-
-    // 버퍼 갱신 함수 호출
-    RebuildTreeGeometry();
-}
-
-void TreeBillboardsApp::RebuildTreeGeometry()
-{
-    if (mTreeData.empty()) return;
-
-    // [개선됨] ResourceManager 수정 없이 RenderItemManager를 통해 지오메트리에 안전하게 접근합니다.
-    auto& treeRitems = mRenderItemManager.GetRitemLayer(RenderLayer::AlphaTestedTreeSprites);
-    if (treeRitems.empty()) return;
-
-    MeshGeometry* treeGeo = treeRitems[0]->Geo;
-    if (!treeGeo) return;
-
-    UINT vbByteSize = (UINT)mTreeData.size() * sizeof(Vertex);
-
-    // 포인트(빌보드) 개수만큼의 Index Buffer 동적 생성
-    std::vector<std::uint16_t> indices;
-    indices.resize(mTreeData.size());
-    for (std::uint16_t i = 0; i < (std::uint16_t)mTreeData.size(); ++i)
-        indices[i] = i;
-
-    UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
-
-    // 1. CPU 버퍼에 새로운 데이터 덮어쓰기
-    ThrowIfFailed(D3DCreateBlob(vbByteSize, &treeGeo->VertexBufferCPU));
-    CopyMemory(treeGeo->VertexBufferCPU->GetBufferPointer(), mTreeData.data(), vbByteSize);
-
-    ThrowIfFailed(D3DCreateBlob(ibByteSize, &treeGeo->IndexBufferCPU));
-    CopyMemory(treeGeo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
-
-    // 2. GPU 동기화 및 CommandList 리셋
-    FlushCommandQueue();
-    ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
-
-    // 3. GPU 버퍼 (VertexBuffer, IndexBuffer) 재생성 및 업로드
-    treeGeo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
-        mCommandList.Get(), mTreeData.data(), vbByteSize, treeGeo->VertexBufferUploader);
-
-    treeGeo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
-        mCommandList.Get(), indices.data(), ibByteSize, treeGeo->IndexBufferUploader);
-
-    // 4. 지오메트리 메타데이터 갱신
-    treeGeo->VertexByteStride = sizeof(Vertex);
-    treeGeo->VertexBufferByteSize = vbByteSize;
-    treeGeo->IndexFormat = DXGI_FORMAT_R16_UINT;
-    treeGeo->IndexBufferByteSize = ibByteSize;
-
-    treeGeo->DrawArgs["points"].IndexCount = (UINT)mTreeData.size();
-    //treeGeo->DrawArgs["points"].VertexCount = (UINT)mTreeData.size();
-    treeGeo->DrawArgs["points"].StartIndexLocation = 0;
-    treeGeo->DrawArgs["points"].BaseVertexLocation = 0;
-
-    // 5. CommandList 실행 및 대기
-    ThrowIfFailed(mCommandList->Close());
-    ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
-    mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-    FlushCommandQueue();
-
-    // 6. 렌더 아이템들의 렌더링(Draw) 카운트 갱신
-    for (auto& e : treeRitems)
-    {
-        e->IndexCount = (UINT)mTreeData.size();
-        e->StartIndexLocation = 0;
-        e->BaseVertexLocation = 0;
-    }
-}
-*/
