@@ -134,6 +134,7 @@ bool TreeBillboardsApp::Initialize()
     // 매니저 초기화
     mResourceManager.Initialize(md3dDevice.Get());
     mShaderManager.Initialize(md3dDevice.Get());
+    mRenderItemManager.Initialize(&mResourceManager);
 
     // 리소스 및 셰이더 로드
     mResourceManager.LoadTextures(mCommandList.Get());
@@ -155,7 +156,7 @@ bool TreeBillboardsApp::Initialize()
     mResourceManager.BuildMaterials();
 
     // 렌더 아이템 세팅
-    mRenderItemManager.BuildRenderItems(&mResourceManager);
+    mRenderItemManager.BuildRenderItems();
 
     BuildFrameResources();
 

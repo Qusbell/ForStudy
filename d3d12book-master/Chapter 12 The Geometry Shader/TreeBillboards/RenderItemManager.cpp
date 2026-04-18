@@ -9,66 +9,66 @@ RenderItemManager::~RenderItemManager()
 {
 }
 
-// Step 1-8: TreeBillboardsApp.cpp 에서 옮겨온 로직. 
-// App의 mResourceManager를 포인터로 넘겨받아 사용합니다.
-void RenderItemManager::BuildRenderItems(ResourceManager* resMgr)
+void RenderItemManager::Initialize(ResourceManager* resMgr)
 {
-	auto& geometries = resMgr->GetGeometries();
-	auto& materials = resMgr->GetMaterials();
+    mResourceManager = resMgr;
+}
 
-	auto wavesRitem = std::make_unique<RenderItem>();
-	wavesRitem->World = MathHelper::Identity4x4();
-	DirectX::XMStoreFloat4x4(&wavesRitem->TexTransform, DirectX::XMMatrixScaling(5.0f, 5.0f, 1.0f));
-	wavesRitem->ObjCBIndex = 0;
-	wavesRitem->Mat = materials["water"].get();
-	wavesRitem->Geo = geometries["waterGeo"].get();
-	wavesRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	wavesRitem->IndexCount = wavesRitem->Geo->DrawArgs["grid"].IndexCount;
-	wavesRitem->StartIndexLocation = wavesRitem->Geo->DrawArgs["grid"].StartIndexLocation;
-	wavesRitem->BaseVertexLocation = wavesRitem->Geo->DrawArgs["grid"].BaseVertexLocation;
+// 렌더 아이템 생성을 위한 범용 팩토리 메서드
+RenderItem* RenderItemManager::BuildRenderItem(
+    RenderLayer layer,
+    std::string geoName,
+    std::string submeshName,
+    std::string matName,
+    UINT objCBIndex,
+    DirectX::XMFLOAT4X4 world,
+    DirectX::XMFLOAT4X4 texTransform,
+    D3D12_PRIMITIVE_TOPOLOGY primitiveType)
+{
+    auto& geometries = mResourceManager->GetGeometries();
+    auto& materials = mResourceManager->GetMaterials();
 
-	mWavesRitem = wavesRitem.get();
-	mRitemLayer[(int)RenderLayer::Transparent].push_back(wavesRitem.get());
+    auto ritem = std::make_unique<RenderItem>();
+    ritem->World = world;
+    ritem->TexTransform = texTransform;
+    ritem->ObjCBIndex = objCBIndex;
+    ritem->Mat = materials[matName].get();
+    ritem->Geo = geometries[geoName].get();
+    ritem->PrimitiveType = primitiveType;
+    ritem->IndexCount = ritem->Geo->DrawArgs[submeshName].IndexCount;
+    ritem->StartIndexLocation = ritem->Geo->DrawArgs[submeshName].StartIndexLocation;
+    ritem->BaseVertexLocation = ritem->Geo->DrawArgs[submeshName].BaseVertexLocation;
 
-	auto gridRitem = std::make_unique<RenderItem>();
-	gridRitem->World = MathHelper::Identity4x4();
-	DirectX::XMStoreFloat4x4(&gridRitem->TexTransform, DirectX::XMMatrixScaling(5.0f, 5.0f, 1.0f));
-	gridRitem->ObjCBIndex = 1;
-	gridRitem->Mat = materials["grass"].get();
-	gridRitem->Geo = geometries["landGeo"].get();
-	gridRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	gridRitem->IndexCount = gridRitem->Geo->DrawArgs["grid"].IndexCount;
-	gridRitem->StartIndexLocation = gridRitem->Geo->DrawArgs["grid"].StartIndexLocation;
-	gridRitem->BaseVertexLocation = gridRitem->Geo->DrawArgs["grid"].BaseVertexLocation;
+    // 포인터 저장용 변수
+    RenderItem* ritemPtr = ritem.get();
 
-	mRitemLayer[(int)RenderLayer::Opaque].push_back(gridRitem.get());
+    // 레이어 및 전체 리스트에 등록
+    mRitemLayer[(int)layer].push_back(ritemPtr);
+    mAllRitems.push_back(std::move(ritem));
 
-	auto boxRitem = std::make_unique<RenderItem>();
-	DirectX::XMStoreFloat4x4(&boxRitem->World, DirectX::XMMatrixTranslation(3.0f, 2.0f, -9.0f));
-	boxRitem->ObjCBIndex = 2;
-	boxRitem->Mat = materials["wirefence"].get();
-	boxRitem->Geo = geometries["boxGeo"].get();
-	boxRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	boxRitem->IndexCount = boxRitem->Geo->DrawArgs["box"].IndexCount;
-	boxRitem->StartIndexLocation = boxRitem->Geo->DrawArgs["box"].StartIndexLocation;
-	boxRitem->BaseVertexLocation = boxRitem->Geo->DrawArgs["box"].BaseVertexLocation;
+    return ritemPtr;
+}
 
-	mRitemLayer[(int)RenderLayer::AlphaTested].push_back(boxRitem.get());
+// 테스트 용도: 단수형 메서드를 사용하여 기존 하드코딩 데이터 일괄 생성
+void RenderItemManager::BuildRenderItems()
+{
+    DirectX::XMFLOAT4X4 identity = MathHelper::Identity4x4();
 
-	auto treeSpritesRitem = std::make_unique<RenderItem>();
-	treeSpritesRitem->World = MathHelper::Identity4x4();
-	treeSpritesRitem->ObjCBIndex = 3;
-	treeSpritesRitem->Mat = materials["treeSprites"].get();
-	treeSpritesRitem->Geo = geometries["treeSpritesGeo"].get();
-	treeSpritesRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
-	treeSpritesRitem->IndexCount = treeSpritesRitem->Geo->DrawArgs["points"].IndexCount;
-	treeSpritesRitem->StartIndexLocation = treeSpritesRitem->Geo->DrawArgs["points"].StartIndexLocation;
-	treeSpritesRitem->BaseVertexLocation = treeSpritesRitem->Geo->DrawArgs["points"].BaseVertexLocation;
+    DirectX::XMFLOAT4X4 texScale;
+    DirectX::XMStoreFloat4x4(&texScale, DirectX::XMMatrixScaling(5.0f, 5.0f, 1.0f));
 
-	mRitemLayer[(int)RenderLayer::AlphaTestedTreeSprites].push_back(treeSpritesRitem.get());
+    DirectX::XMFLOAT4X4 boxWorld;
+    DirectX::XMStoreFloat4x4(&boxWorld, DirectX::XMMatrixTranslation(3.0f, 2.0f, -9.0f));
 
-	mAllRitems.push_back(std::move(wavesRitem));
-	mAllRitems.push_back(std::move(gridRitem));
-	mAllRitems.push_back(std::move(boxRitem));
-	mAllRitems.push_back(std::move(treeSpritesRitem));
+    // 1. Water (Waves) - 파생 포인터를 유지해야 하므로 반환값을 mWavesRitem에 저장
+    mWavesRitem = BuildRenderItem(RenderLayer::Transparent, "waterGeo", "grid", "water", 0, identity, texScale);
+
+    // 2. Grid (Land)
+    BuildRenderItem(RenderLayer::Opaque, "landGeo", "grid", "grass", 1, identity, texScale);
+
+    // 3. Box
+    BuildRenderItem(RenderLayer::AlphaTested, "boxGeo", "box", "wirefence", 2, boxWorld, identity);
+
+    // 4. Tree Sprites
+    BuildRenderItem(RenderLayer::AlphaTestedTreeSprites, "treeSpritesGeo", "points", "treeSprites", 3, identity, identity, D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 }
