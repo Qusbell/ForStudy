@@ -2,6 +2,8 @@
 // TreeBillboardsApp.cpp by Frank Luna (C) 2015 All Rights Reserved.
 //***************************************************************************************
 #include "TreeBillboardsApp.h"
+#include "../../Common/MathHelper.h" // 혹시 모를 인식 오류 방지용 명시적 추가
+#include "../../Common/Camera.h"     // 혹시 모를 인식 오류 방지용 명시적 추가
 
 // 다른 곳에서도 참조할 수 있도록 extern 처리
 extern const int gNumFrameResources = 3;
@@ -22,10 +24,17 @@ bool TreeBillboardsApp::Initialize()
     if (!D3DApp::Initialize())
         return false;
 
+    // 메인 윈도우에 메뉴 부착
+    HMENU hMenu = LoadMenu(mhAppInst, MAKEINTRESOURCE(IDR_MAIN_MENU));
+    SetMenu(mhMainWnd, hMenu);
+
     // Reset the command list to prep for initialization commands.
     ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
     mCbvSrvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    // [수정됨] 카메라 초기 위치 설정
+    mCamera.SetPosition(0.0f, 15.0f, -50.0f);
 
     mWaves = std::make_unique<Waves>(128, 128, 1.0f, 0.03f, 4.0f, 0.2f);
 
@@ -76,9 +85,8 @@ void TreeBillboardsApp::OnResize()
 {
     D3DApp::OnResize();
 
-    // The window resized, so update the aspect ratio and recompute the projection matrix.
-    XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
-    XMStoreFloat4x4(&mProj, P);
+    // [수정됨] 카메라의 렌즈 투영 행렬 세팅 업데이트
+    mCamera.SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
 }
 
 void TreeBillboardsApp::Update(const GameTimer& gt)
@@ -182,64 +190,258 @@ void TreeBillboardsApp::OnMouseDown(WPARAM btnState, int x, int y)
     mLastMousePos.x = x;
     mLastMousePos.y = y;
 
-    SetCapture(mhMainWnd);
+    if (mCurrentMode == ToolMode::Camera)
+    {
+        SetCapture(mhMainWnd); // 카메라 모드일 때만 드래그 캡처
+    }
+    else if (mCurrentMode == ToolMode::PlantTree && (btnState & MK_LBUTTON))
+    {
+        Pick(x, y); // [추가] 마우스 위치로 광선을 쏴서 나무 심기 호출
+    }
+    else if (mCurrentMode == ToolMode::BuildFence && (btnState & MK_LBUTTON))
+    {
+        // Pick(x, y); // 펜스 짓기 구현 시 사용
+    }
 }
 
 void TreeBillboardsApp::OnMouseUp(WPARAM btnState, int x, int y)
 {
-    ReleaseCapture();
+    if (mCurrentMode == ToolMode::Camera)
+    {
+        ReleaseCapture();
+    }
 }
 
 void TreeBillboardsApp::OnMouseMove(WPARAM btnState, int x, int y)
 {
-    if ((btnState & MK_LBUTTON) != 0)
+    // [수정됨] 카메라 모드일 때만 Camera 객체를 통한 회전 허용
+    if (mCurrentMode == ToolMode::Camera)
     {
-        // Make each pixel correspond to a quarter of a degree.
-        float dx = XMConvertToRadians(0.25f * static_cast<float>(x - mLastMousePos.x));
-        float dy = XMConvertToRadians(0.25f * static_cast<float>(y - mLastMousePos.y));
+        if ((btnState & MK_LBUTTON) != 0)
+        {
+            // Make each pixel correspond to a quarter of a degree.
+            float dx = XMConvertToRadians(0.25f * static_cast<float>(x - mLastMousePos.x));
+            float dy = XMConvertToRadians(0.25f * static_cast<float>(y - mLastMousePos.y));
 
-        // Update angles based on input to orbit camera around box.
-        mTheta += dx;
-        mPhi += dy;
-
-        // Restrict the angle mPhi.
-        mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
-    }
-    else if ((btnState & MK_RBUTTON) != 0)
-    {
-        // Make each pixel correspond to 0.2 unit in the scene.
-        float dx = 0.2f * static_cast<float>(x - mLastMousePos.x);
-        float dy = 0.2f * static_cast<float>(y - mLastMousePos.y);
-
-        // Update the camera radius based on input.
-        mRadius += dx - dy;
-
-        // Restrict the radius.
-        mRadius = MathHelper::Clamp(mRadius, 5.0f, 150.0f);
+            mCamera.Pitch(dy);
+            mCamera.RotateY(dx);
+        }
     }
 
     mLastMousePos.x = x;
     mLastMousePos.y = y;
 }
 
+LRESULT TreeBillboardsApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    switch (msg)
+    {
+    case WM_COMMAND:
+    {
+        int wmId = LOWORD(wParam);
+        std::wstring filepath;
+
+        switch (wmId)
+        {
+        case ID_MODE_CAMERA:
+            mCurrentMode = ToolMode::Camera;
+            break;
+        case ID_MODE_PLANT_TREE:
+            mCurrentMode = ToolMode::PlantTree;
+            break;
+        case ID_MODE_BUILD_FENCE:
+            mCurrentMode = ToolMode::BuildFence;
+            break;
+        case ID_FILE_SAVE:
+            // 대화상자를 열어 경로를 얻고 저장 함수 호출
+            filepath = SaveFileDialog();
+            if (!filepath.empty()) { SaveMapData(filepath); }
+            break;
+        case ID_FILE_LOAD:
+            // 대화상자를 열어 경로를 얻고 로드 함수 호출
+            filepath = OpenFileDialog();
+            if (!filepath.empty()) { LoadMapData(filepath); }
+            break;
+        case ID_ENV_DAY:
+            // [수정됨] 낮 모드 적용
+            SetEnvironmentMode(EnvironmentMode::Day);
+            break;
+        case ID_ENV_NIGHT:
+            // [수정됨] 밤 모드 적용
+            SetEnvironmentMode(EnvironmentMode::Night);
+            break;
+        }
+        return 0; // 메시지 처리 완료
+    }
+    }
+
+    // 기본 처리는 부모 클래스(D3DApp)로 넘김
+    return D3DApp::MsgProc(hwnd, msg, wParam, lParam);
+}
+
+void TreeBillboardsApp::SaveMapData(const std::wstring& filename)
+{
+    std::wofstream fout(filename);
+    if (!fout.is_open())
+    {
+        MessageBox(mhMainWnd, L"파일을 저장할 수 없습니다.", L"Error", MB_OK);
+        return;
+    }
+
+    // [수정됨] ResourceManager에서 현재 나무 배열을 통째로 받아옵니다.
+    const auto& trees = mResourceManager.GetTrees();
+
+    fout << L"TREES\n";
+    fout << trees.size() << L"\n";
+    for (const auto& tree : trees)
+    {
+        // [수정됨] TreeSpriteVertex 구조체에 맞게 위치(Pos)와 크기(Size)만 저장
+        fout << tree.Pos.x << L" " << tree.Pos.y << L" " << tree.Pos.z << L" "
+            << tree.Size.x << L" " << tree.Size.y << L"\n";
+    }
+
+    fout.close();
+    MessageBox(mhMainWnd, L"맵 저장이 완료되었습니다.", L"Save Complete", MB_OK);
+}
+
+void TreeBillboardsApp::LoadMapData(const std::wstring& filename)
+{
+    std::wifstream fin(filename);
+    if (!fin.is_open())
+    {
+        MessageBox(mhMainWnd, L"파일을 열 수 없습니다.", L"Error", MB_OK);
+        return;
+    }
+
+    std::wstring header;
+    size_t count = 0;
+
+    fin >> header;
+    if (header == L"TREES")
+    {
+        fin >> count;
+        // [수정됨] 로드할 임시 배열 생성
+        std::vector<TreeSpriteVertex> loadedTrees(count);
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            // 위치와 크기 정보를 차례대로 읽어들임
+            fin >> loadedTrees[i].Pos.x >> loadedTrees[i].Pos.y >> loadedTrees[i].Pos.z
+                >> loadedTrees[i].Size.x >> loadedTrees[i].Size.y;
+        }
+
+        // [수정됨] ResourceManager에 로드된 데이터를 통째로 덮어씁니다.
+        mResourceManager.SetTrees(loadedTrees);
+    }
+
+    fin.close();
+
+    // [수정됨] 데이터가 교체되었으니 GPU 동기화 후 버퍼를 재구축합니다.
+    FlushCommandQueue();
+    ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+
+    // 리소스 매니저에게 GPU 버퍼 갱신 위임
+    mResourceManager.UpdateTreeGeometryBuffer(mCommandList.Get());
+
+    ThrowIfFailed(mCommandList->Close());
+    ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
+    mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+    FlushCommandQueue();
+
+    // 렌더 아이템 매니저의 Draw 카운트 갱신
+    auto& treeRitems = mRenderItemManager.GetRitemLayer(RenderLayer::AlphaTestedTreeSprites);
+    for (auto& e : treeRitems)
+    {
+        e->IndexCount = mResourceManager.GetTreeCount();
+    }
+
+    MessageBox(mhMainWnd, L"맵을 성공적으로 불러왔습니다.", L"Load Complete", MB_OK);
+}
+
+
+std::wstring TreeBillboardsApp::SaveFileDialog()
+{
+    OPENFILENAME ofn;
+    WCHAR szFile[260] = { 0 };
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = mhMainWnd;
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = L"Map Files\0*.map\0Text Files\0*.txt\0All Files\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.lpstrDefExt = L"map";
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
+
+    if (GetSaveFileName(&ofn) == TRUE)
+    {
+        return std::wstring(ofn.lpstrFile);
+    }
+    return L""; // 취소 시 빈 문자열 반환
+}
+
+std::wstring TreeBillboardsApp::OpenFileDialog()
+{
+    OPENFILENAME ofn;
+    WCHAR szFile[260] = { 0 };
+
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = mhMainWnd;
+    ofn.lpstrFile = szFile;
+    ofn.nMaxFile = sizeof(szFile);
+    ofn.lpstrFilter = L"Map Files\0*.map\0Text Files\0*.txt\0All Files\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+    if (GetOpenFileName(&ofn) == TRUE)
+    {
+        return std::wstring(ofn.lpstrFile);
+    }
+    return L""; // 취소 시 빈 문자열 반환
+}
+
+
+
+
+
+
+void TreeBillboardsApp::SetEnvironmentMode(EnvironmentMode mode)
+{
+    mEnvMode = mode;
+
+    if (mEnvMode == EnvironmentMode::Day)
+    {
+        // 낮: 밝은 파란색 하늘
+        mClearColor = { 0.2f, 0.694f, 0.996f, 1.0f };
+    }
+    else
+    {
+        // 밤: 어두운 남색/검은색 계열 하늘
+        mClearColor = { 0.05f, 0.05f, 0.15f, 1.0f };
+    }
+}
+
 void TreeBillboardsApp::OnKeyboardInput(const GameTimer& gt)
 {
+    const float dt = gt.DeltaTime();
+	const float cameraSpeed = 80.0f; // 카메라 이동 속도
+
+    // [수정됨] 카메라 모드일 때 WASD 이동 제어 추가
+    if (mCurrentMode == ToolMode::Camera)
+    {
+        if (GetAsyncKeyState('W') & 0x8000) { mCamera.Walk(cameraSpeed * dt); }
+        if (GetAsyncKeyState('S') & 0x8000) { mCamera.Walk(-cameraSpeed * dt); }
+        if (GetAsyncKeyState('A') & 0x8000) { mCamera.Strafe(-cameraSpeed * dt); }
+        if (GetAsyncKeyState('D') & 0x8000) { mCamera.Strafe(cameraSpeed * dt); }
+    }
 }
 
 void TreeBillboardsApp::UpdateCamera(const GameTimer& gt)
 {
-    // Convert Spherical to Cartesian coordinates.
-    mEyePos.x = mRadius * sinf(mPhi) * cosf(mTheta);
-    mEyePos.z = mRadius * sinf(mPhi) * sinf(mTheta);
-    mEyePos.y = mRadius * cosf(mPhi);
-
-    // Build the view matrix.
-    XMVECTOR pos = XMVectorSet(mEyePos.x, mEyePos.y, mEyePos.z, 1.0f);
-    XMVECTOR target = XMVectorZero();
-    XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-    XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-    XMStoreFloat4x4(&mView, view);
+    // [수정됨] 구면 좌표계 연산을 제거하고 Camera 객체의 뷰 행렬 업데이트 호출
+    mCamera.UpdateViewMatrix();
 }
 
 void TreeBillboardsApp::AnimateMaterials(const GameTimer& gt)
@@ -322,8 +524,9 @@ void TreeBillboardsApp::UpdateMaterialCBs(const GameTimer& gt)
 
 void TreeBillboardsApp::UpdateMainPassCB(const GameTimer& gt)
 {
-    XMMATRIX view = XMLoadFloat4x4(&mView);
-    XMMATRIX proj = XMLoadFloat4x4(&mProj);
+    // [수정됨] Camera 객체에서 View, Proj 행렬 및 위치를 가져옴
+    XMMATRIX view = mCamera.GetView();
+    XMMATRIX proj = mCamera.GetProj();
 
     XMMATRIX viewProj = XMMatrixMultiply(view, proj);
     XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
@@ -336,20 +539,42 @@ void TreeBillboardsApp::UpdateMainPassCB(const GameTimer& gt)
     XMStoreFloat4x4(&mMainPassCB.InvProj, XMMatrixTranspose(invProj));
     XMStoreFloat4x4(&mMainPassCB.ViewProj, XMMatrixTranspose(viewProj));
     XMStoreFloat4x4(&mMainPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
-    mMainPassCB.EyePosW = mEyePos;
+
+    // [수정됨] mEyePos 대신 Camera 객체의 위치 사용
+    mMainPassCB.EyePosW = mCamera.GetPosition3f();
+
     mMainPassCB.RenderTargetSize = XMFLOAT2((float)mClientWidth, (float)mClientHeight);
     mMainPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / mClientWidth, 1.0f / mClientHeight);
     mMainPassCB.NearZ = 1.0f;
     mMainPassCB.FarZ = 1000.0f;
     mMainPassCB.TotalTime = gt.TotalTime();
     mMainPassCB.DeltaTime = gt.DeltaTime();
-    mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-    mMainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-    mMainPassCB.Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
-    mMainPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-    mMainPassCB.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
-    mMainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-    mMainPassCB.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
+
+    // [수정됨] 현재 환경 모드(낮/밤)에 따라 조명(Lighting) 강도와 방향을 다르게 설정합니다.
+    if (mEnvMode == EnvironmentMode::Day)
+    {
+        // 낮: 기존과 동일하게 밝은 태양빛과 주변광
+        mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+        mMainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
+        mMainPassCB.Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
+        mMainPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
+        mMainPassCB.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
+        mMainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
+        mMainPassCB.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
+    }
+    else
+    {
+        // 밤: 어둡고 푸르스름한 달빛 느낌
+        mMainPassCB.AmbientLight = { 0.05f, 0.05f, 0.1f, 1.0f }; // 아주 어두운 주변광
+
+        // 메인 조명(Lights[0])을 달빛으로 취급하여 방향과 색상 변경
+        mMainPassCB.Lights[0].Direction = { -0.57735f, -0.3f, 0.57735f };
+        mMainPassCB.Lights[0].Strength = { 0.1f, 0.1f, 0.3f }; // 푸르고 약한 빛
+
+        // 보조 조명들은 밤이므로 끕니다 (Strength를 0으로)
+        mMainPassCB.Lights[1].Strength = { 0.0f, 0.0f, 0.0f };
+        mMainPassCB.Lights[2].Strength = { 0.0f, 0.0f, 0.0f };
+    }
 
     auto currPassCB = mCurrFrameResource->PassCB.get();
     currPassCB->CopyData(0, mMainPassCB);
@@ -488,5 +713,77 @@ void TreeBillboardsApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, cons
         cmdList->SetGraphicsRootConstantBufferView(3, matCBAddress);
 
         cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
+    }
+}
+
+
+void TreeBillboardsApp::Pick(int sx, int sy)
+{
+    // 1. 화면 픽셀 좌표를 NDC 공간([-1, 1])으로 변환
+    // [수정됨] XMMATRIX 대신 XMFLOAT4X4를 반환하는 GetProj4x4f()를 사용하여 요소에 접근합니다.
+    float vx = (+2.0f * sx / mClientWidth - 1.0f) / mCamera.GetProj4x4f()(0, 0);
+    float vy = (-2.0f * sy / mClientHeight + 1.0f) / mCamera.GetProj4x4f()(1, 1);
+
+    // 2. View 공간에서의 Ray(광선) 정의
+    XMVECTOR rayOrigin = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+    XMVECTOR rayDir = XMVectorSet(vx, vy, 1.0f, 0.0f);
+
+    // 3. View 공간의 Ray를 World 공간으로 변환
+    XMMATRIX V = mCamera.GetView();
+    XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(V), V);
+
+    rayOrigin = XMVector3TransformCoord(rayOrigin, invView);
+    rayDir = XMVector3TransformNormal(rayDir, invView);
+    rayDir = XMVector3Normalize(rayDir);
+
+    // 4. Ray와 지형 평면(y=0 기준)의 교차점 근사 계산
+    float dirY = XMVectorGetY(rayDir);
+    if (abs(dirY) < 0.001f) return; // Ray가 수평(지형과 평행)이면 무시
+
+    float t = -XMVectorGetY(rayOrigin) / dirY;
+    if (t < 0.0f) return; // 교차점이 카메라 뒤편이면 무시
+
+    XMVECTOR hitPos = rayOrigin + t * rayDir;
+    float hitX = XMVectorGetX(hitPos);
+    float hitZ = XMVectorGetZ(hitPos);
+
+    // 지형의 범위(예: 50x50 이라면 -25 ~ 25)를 벗어났는지 확인
+	const float terrainHalfSize = 60.0f; // 지형의 절반 크기
+    if (hitX < -terrainHalfSize || hitX > terrainHalfSize || hitZ < -terrainHalfSize || hitZ > terrainHalfSize) { return; }
+
+    // [반영됨] 작성하신 Hills 네임스페이스를 활용하여 실제 지형의 높이(Y)를 가져옴
+    float hitY = Hills::GetHeight(hitX, hitZ);
+
+    // 5. 현재 선택된 툴 모드에 따라 오브젝트 배치
+    if (mCurrentMode == ToolMode::PlantTree)
+    {
+        PlantTreeAt(hitX, hitY, hitZ);
+    }
+}
+
+// 2. PlantTreeAt 함수가 아주 깔끔해집니다.
+void TreeBillboardsApp::PlantTreeAt(float x, float y, float z)
+{
+    // 1. 데이터 추가 위임
+    mResourceManager.AddTree(x, y, z);
+
+    // 2. GPU 동기화 및 커맨드 리스트 준비
+    FlushCommandQueue();
+    ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+
+    // 3. 리소스 매니저에게 버퍼 업데이트 위임
+    mResourceManager.UpdateTreeGeometryBuffer(mCommandList.Get());
+
+    // 4. 커맨드 큐 실행 및 대기
+    ThrowIfFailed(mCommandList->Close());
+    ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
+    mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+    FlushCommandQueue();
+
+    // 5. 렌더 아이템 매니저의 Draw 카운트 갱신
+    auto& treeRitems = mRenderItemManager.GetRitemLayer(RenderLayer::AlphaTestedTreeSprites);
+    for (auto& e : treeRitems)
+    {
+        e->IndexCount = mResourceManager.GetTreeCount();
     }
 }

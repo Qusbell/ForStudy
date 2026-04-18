@@ -8,6 +8,20 @@
 
 class Waves;
 
+namespace Hills
+{
+    float GetHeight(float x, float z);
+
+    DirectX::XMFLOAT3 GetNormal(float x, float z);
+}
+
+struct TreeSpriteVertex
+{
+    DirectX::XMFLOAT3 Pos;
+    DirectX::XMFLOAT2 Size;
+};
+
+
 class ResourceManager
 {
 public:
@@ -35,6 +49,11 @@ public:
     void BuildWavesGeometry(ID3D12GraphicsCommandList* cmdList, Waves* waves);
     void BuildTreeSpritesGeometry(ID3D12GraphicsCommandList* cmdList);
 
+	// [추가됨] 나무 스프라이트 관리를 위한 메서드
+    void AddTree(float x, float y, float z);
+    void UpdateTreeGeometryBuffer(ID3D12GraphicsCommandList* cmdList);
+    UINT GetTreeCount() const { return (UINT)mTreeVertices.size(); }
+
     // 테스트 용도: 단수형 메서드를 재사용하여 하드코딩된 재질들을 일괄 생성합니다.
     void BuildMaterials();
     void BuildMaterial(std::string name, int matCBIndex, int diffuseSrvHeapIndex, DirectX::XMFLOAT4 diffuseAlbedo, DirectX::XMFLOAT3 fresnelR0, float roughness);
@@ -43,9 +62,9 @@ public:
     std::unordered_map<std::string, std::unique_ptr<MeshGeometry>>& GetGeometries() { return mGeometries; }
     std::unordered_map<std::string, std::unique_ptr<Material>>& GetMaterials() { return mMaterials; }
 
-private:
-    float GetHillsHeight(float x, float z) const;
-    DirectX::XMFLOAT3 GetHillsNormal(float x, float z) const;
+    // [추가] 파일 저장/로드를 위해 나무 데이터 배열에 접근하는 Getter / Setter
+    const std::vector<TreeSpriteVertex>& GetTrees() const { return mTreeVertices; }
+    void SetTrees(const std::vector<TreeSpriteVertex>& trees) { mTreeVertices = trees; }
 
 private:
     ID3D12Device* md3dDevice = nullptr;
@@ -53,4 +72,7 @@ private:
     std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
     std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometries;
     std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
+
+    // [추가됨] 동적으로 관리할 나무 데이터 (App 클래스에서 이쪽으로 이사 옴)
+    std::vector<TreeSpriteVertex> mTreeVertices;
 };
