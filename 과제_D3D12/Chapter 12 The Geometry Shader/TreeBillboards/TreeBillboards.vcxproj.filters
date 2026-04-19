@@ -98,11 +98,11 @@
     <ClInclude Include="RenderItemManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TreeBillboardsApp.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="resource.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TreeBillboardsApp.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
