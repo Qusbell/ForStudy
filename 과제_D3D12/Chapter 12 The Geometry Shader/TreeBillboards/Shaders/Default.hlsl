@@ -81,6 +81,7 @@ struct VertexIn
 	float3 PosL    : POSITION;
     float3 NormalL : NORMAL;
 	float2 TexC    : TEXCOORD;
+    float4 Color   : COLOR;
 };
 
 struct VertexOut
@@ -89,6 +90,7 @@ struct VertexOut
     float3 PosW    : POSITION;
     float3 NormalW : NORMAL;
 	float2 TexC    : TEXCOORD;
+    float4 Color   : COLOR;
 };
 
 VertexOut VS(VertexIn vin)
@@ -109,17 +111,18 @@ VertexOut VS(VertexIn vin)
 	float4 texC = mul(float4(vin.TexC, 0.0f, 1.0f), gTexTransform);
 	vout.TexC = mul(texC, gMatTransform).xy;
 
+    vout.Color = vin.Color;
+
     return vout;
 }
 
 float4 PS(VertexOut pin) : SV_Target
 {
     float4 diffuseAlbedo = gDiffuseMap.Sample(gsamAnisotropicWrap, pin.TexC) * gDiffuseAlbedo;
+    
+    diffuseAlbedo *= pin.Color;
 	
 #ifdef ALPHA_TEST
-	// Discard pixel if texture alpha < 0.1.  We do this test as soon 
-	// as possible in the shader so that we can potentially exit the
-	// shader early, thereby skipping the rest of the shader code.
 	clip(diffuseAlbedo.a - 0.1f);
 #endif
 
@@ -152,5 +155,3 @@ float4 PS(VertexOut pin) : SV_Target
 
     return litColor;
 }
-
-

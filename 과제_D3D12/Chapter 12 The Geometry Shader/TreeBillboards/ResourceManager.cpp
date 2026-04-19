@@ -102,6 +102,8 @@ void ResourceManager::BuildBoxGeometry(ID3D12GraphicsCommandList* cmdList)
         vertices[i].Pos = box.Vertices[i].Position;
         vertices[i].Normal = box.Vertices[i].Normal;
         vertices[i].TexC = box.Vertices[i].TexC;
+
+		vertices[i].Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); // 흰색
     }
 
     std::vector<std::uint16_t> indices = box.GetIndices16();
@@ -124,6 +126,13 @@ void ResourceManager::BuildLandGeometry(ID3D12GraphicsCommandList* cmdList)
         vertices[i].Pos.y = Hills::GetHeight(p.x, p.z);
         vertices[i].Normal = Hills::GetNormal(p.x, p.z);
         vertices[i].TexC = grid.Vertices[i].TexC;
+
+        float height = vertices[i].Pos.y;
+        if (height < -10.0f)      vertices[i].Color = XMFLOAT4(1.0f, 0.96f, 0.62f, 1.0f); // 모래색
+        else if (height < 5.0f)   vertices[i].Color = XMFLOAT4(0.48f, 0.77f, 0.46f, 1.0f); // 연두색 (풀)
+        else if (height < 12.0f)  vertices[i].Color = XMFLOAT4(0.10f, 0.48f, 0.19f, 1.0f); // 짙은 녹색 (숲)
+        else if (height < 20.0f)  vertices[i].Color = XMFLOAT4(0.45f, 0.39f, 0.34f, 1.0f); // 갈색 (바위)
+        else                      vertices[i].Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);    // 흰색 (눈)
     }
 
     std::vector<std::uint16_t> indices = grid.GetIndices16();

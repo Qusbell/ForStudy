@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../../Common/d3dUtil.h"
 #include "../../Common/MathHelper.h"
@@ -46,6 +46,7 @@ struct Vertex
     DirectX::XMFLOAT3 Pos;
     DirectX::XMFLOAT3 Normal;
 	DirectX::XMFLOAT2 TexC;
+    DirectX::XMFLOAT4 Color;
 };
 
 // Stores the resources needed for the CPU to build the command lists

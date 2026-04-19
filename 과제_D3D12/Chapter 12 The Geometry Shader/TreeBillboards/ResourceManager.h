@@ -1,10 +1,13 @@
 ﻿#pragma once
 
 #include "../../Common/d3dUtil.h"
+#include "../../Common/MathHelper.h"
 #include <unordered_map>
 #include <string>
 #include <memory>
 #include <vector>
+
+using namespace DirectX;
 
 class Waves;
 

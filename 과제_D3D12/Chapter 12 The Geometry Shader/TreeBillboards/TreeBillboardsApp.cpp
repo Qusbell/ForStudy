@@ -613,6 +613,9 @@ void TreeBillboardsApp::UpdateWaves(const GameTimer& gt)
         v.TexC.x = 0.5f + v.Pos.x / mWaves->Width();
         v.TexC.y = 0.5f - v.Pos.z / mWaves->Depth();
 
+        // 파도의 버텍스 컬러를 푸른빛으로 지정합니다.
+        v.Color = XMFLOAT4(0.1f, 0.4f, 0.8f, 1.0f);
+
         currWavesVB->CopyData(i, v);
     }
 
