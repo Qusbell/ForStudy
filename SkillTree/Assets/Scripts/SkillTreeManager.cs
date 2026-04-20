@@ -14,10 +14,9 @@ namespace PoE_SkillTree
 
         [Header("설정")]
         [SerializeField] private List<SkillNodeData> allNodes = new List<SkillNodeData>();
-        [SerializeField] private int availablePoints = 20;
+        [SerializeField] private int availablePoints = 20; // 기본값
 
         private HashSet<string> _allocatedNodeIds = new HashSet<string>();
-        // [추가] 런타임에서 양방향 연결을 관리하기 위한 맵
         private Dictionary<string, HashSet<string>> _adjacencyMap = new Dictionary<string, HashSet<string>>();
 
         public event Action OnTreeChanged;
@@ -28,8 +27,8 @@ namespace PoE_SkillTree
             else Destroy(gameObject);
 
             AutoLoadAllSkillAssets();
-            BuildAdjacencyMap(); // [추가] 양방향 그래프 빌드
-            LoadTree();
+            BuildAdjacencyMap();
+            LoadTree(); // 로드 시 포인트와 할당 리스트를 모두 복원합니다.
         }
 
         private void AutoLoadAllSkillAssets()
@@ -42,9 +41,6 @@ namespace PoE_SkillTree
             Debug.Log($"<color=cyan>[SkillTreeManager]</color> 총 {allNodes.Count}개의 데이터를 로드했습니다.");
         }
 
-        /// <summary>
-        /// [개선] 에셋에 한쪽 방향으로만 연결되어 있어도 런타임에 양방향으로 연결합니다.
-        /// </summary>
         private void BuildAdjacencyMap()
         {
             _adjacencyMap.Clear();
@@ -56,18 +52,14 @@ namespace PoE_SkillTree
                 foreach (var neighbor in node.neighbors)
                 {
                     if (neighbor == null) continue;
-
-                    // A -> B 연결
                     _adjacencyMap[node.id].Add(neighbor.id);
 
-                    // B -> A 자동 역연결 (상호 참조 자동화)
                     if (!_adjacencyMap.ContainsKey(neighbor.id))
                         _adjacencyMap[neighbor.id] = new HashSet<string>();
 
                     _adjacencyMap[neighbor.id].Add(node.id);
                 }
             }
-            Debug.Log("<color=cyan>[SkillTreeManager]</color> 양방향 인접 맵 빌드 완료.");
         }
 
         public bool IsAllocated(string id) => _allocatedNodeIds.Contains(id);
@@ -77,7 +69,6 @@ namespace PoE_SkillTree
             if (node == null || availablePoints <= 0 || IsAllocated(node.id)) return false;
             if (node.isStartNode) return true;
 
-            // 인접 맵을 사용하여 연결된 노드가 있는지 확인
             if (_adjacencyMap.TryGetValue(node.id, out var neighbors))
             {
                 return neighbors.Any(neighborId => IsAllocated(neighborId));
@@ -176,7 +167,11 @@ namespace PoE_SkillTree
 
         public void SaveTree()
         {
-            var data = new SkillTreeSaveData { allocatedNodeIds = _allocatedNodeIds.ToList() };
+            var data = new SkillTreeSaveData
+            {
+                availablePoints = this.availablePoints, // 현재 포인트 저장
+                allocatedNodeIds = _allocatedNodeIds.ToList()
+            };
             PlayerPrefs.SetString("SkillTree_Save", JsonUtility.ToJson(data));
             PlayerPrefs.Save();
         }
@@ -186,8 +181,11 @@ namespace PoE_SkillTree
             if (PlayerPrefs.HasKey("SkillTree_Save"))
             {
                 var data = JsonUtility.FromJson<SkillTreeSaveData>(PlayerPrefs.GetString("SkillTree_Save"));
+                this.availablePoints = data.availablePoints; // 저장된 포인트 복원
                 _allocatedNodeIds = new HashSet<string>(data.allocatedNodeIds);
                 OnTreeChanged?.Invoke();
+
+                Debug.Log($"<color=cyan>[SkillTreeManager]</color> 데이터 로드 완료. (남은 포인트: {availablePoints})");
             }
         }
     }
