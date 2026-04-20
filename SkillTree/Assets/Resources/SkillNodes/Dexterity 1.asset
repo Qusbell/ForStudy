@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Dexterity 1
   m_EditorClassIdentifier: Assembly-CSharp::PoE_SkillTree.SkillNodeData
   id: 10001
-  skillName: 
+  skillName: "\uC18C\uC18C\uD55C \uC7AC\uC8FC"
   description: 
   icon: {fileID: 0}
   modifiers:

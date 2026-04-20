@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: Strength 3
   m_EditorClassIdentifier: Assembly-CSharp::PoE_SkillTree.SkillNodeData
   id: 40003
-  skillName: 
+  skillName: "\uD0DC\uC0B0\uAC19\uC740 \uADFC\uB825"
   description: 
   icon: {fileID: 0}
   modifiers:
   - type: 0
-    value: 0
+    value: 30
   neighbors: []
   isStartNode: 0
