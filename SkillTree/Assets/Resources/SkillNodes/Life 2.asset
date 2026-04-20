@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4e2e9bf9ce8f1749a7a784312c188a1, type: 3}
+  m_Name: Life 2
+  m_EditorClassIdentifier: Assembly-CSharp::PoE_SkillTree.SkillNodeData
+  id: 30002
+  skillName: "\uC644\uC219\uD55C \uC0DD\uBA85\uB825"
+  description: 
+  icon: {fileID: 0}
+  modifiers:
+  - type: 4
+    value: 20
+  neighbors:
+  - {fileID: 11400000, guid: 85c5e712abc41d54dac39ed9ddd3ec2b, type: 2}
+  - {fileID: 11400000, guid: 9fd861129b9dc094f918544e3fee0066, type: 2}
+  isStartNode: 0
