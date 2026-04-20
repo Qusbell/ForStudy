@@ -22,4 +22,5 @@ MonoBehaviour:
   neighbors:
   - {fileID: 11400000, guid: 85c5e712abc41d54dac39ed9ddd3ec2b, type: 2}
   - {fileID: 11400000, guid: 9fd861129b9dc094f918544e3fee0066, type: 2}
+  - {fileID: 11400000, guid: fd624e98c296b2440a5d1b71b0ffecba, type: 2}
   isStartNode: 0

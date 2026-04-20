@@ -6,7 +6,7 @@ using UnityEngine;
 namespace PoE_SkillTree
 {
     /// <summary>
-    /// 스킬트리의 논리적 상태와 포인트, 저장을 관리하는 핵심 매니저 클래스 (Logic Layer)
+    /// 스킬트리의 논리적 상태와 포인트, 저장을 관리하는 핵심 매니저 클래스
     /// </summary>
     public class SkillTreeManager : MonoBehaviour
     {
@@ -14,9 +14,12 @@ namespace PoE_SkillTree
 
         [Header("설정")]
         [SerializeField] private List<SkillNodeData> allNodes = new List<SkillNodeData>();
-        [SerializeField] private int availablePoints = 10;
+        [SerializeField] private int availablePoints = 20;
 
         private HashSet<string> _allocatedNodeIds = new HashSet<string>();
+        // [추가] 런타임에서 양방향 연결을 관리하기 위한 맵
+        private Dictionary<string, HashSet<string>> _adjacencyMap = new Dictionary<string, HashSet<string>>();
+
         public event Action OnTreeChanged;
 
         private void Awake()
@@ -24,39 +27,62 @@ namespace PoE_SkillTree
             if (Instance == null) Instance = this;
             else Destroy(gameObject);
 
-            // [추가] 프로젝트 내의 모든 스킬 데이터 에셋을 자동으로 수집
             AutoLoadAllSkillAssets();
+            BuildAdjacencyMap(); // [추가] 양방향 그래프 빌드
             LoadTree();
         }
 
-        /// <summary>
-        /// Resources/SkillNodes 폴더 내의 모든 SkillNodeData 에셋을 자동으로 로드합니다.
-        /// </summary>
         private void AutoLoadAllSkillAssets()
         {
-            // 경로: Assets/Resources/SkillNodes 내의 모든 SkillNodeData 타입 에셋 로드
             SkillNodeData[] loadedAssets = Resources.LoadAll<SkillNodeData>("SkillNodes");
-
             if (loadedAssets == null || loadedAssets.Length == 0)
-            {
-                Debug.LogWarning("<color=yellow>[SkillTreeManager]</color> Resources/SkillNodes 폴더에서 스킬 데이터를 찾을 수 없습니다! 폴더 구조를 확인하세요.");
-                // 폴더가 없는 경우 대비하여 Resources 루트에서도 탐색
                 loadedAssets = Resources.LoadAll<SkillNodeData>("");
-            }
 
             allNodes = loadedAssets.ToList();
-            Debug.Log($"<color=cyan>[SkillTreeManager]</color> 총 {allNodes.Count}개의 스킬 데이터를 자동으로 로드했습니다.");
+            Debug.Log($"<color=cyan>[SkillTreeManager]</color> 총 {allNodes.Count}개의 데이터를 로드했습니다.");
+        }
+
+        /// <summary>
+        /// [개선] 에셋에 한쪽 방향으로만 연결되어 있어도 런타임에 양방향으로 연결합니다.
+        /// </summary>
+        private void BuildAdjacencyMap()
+        {
+            _adjacencyMap.Clear();
+            foreach (var node in allNodes)
+            {
+                if (!_adjacencyMap.ContainsKey(node.id))
+                    _adjacencyMap[node.id] = new HashSet<string>();
+
+                foreach (var neighbor in node.neighbors)
+                {
+                    if (neighbor == null) continue;
+
+                    // A -> B 연결
+                    _adjacencyMap[node.id].Add(neighbor.id);
+
+                    // B -> A 자동 역연결 (상호 참조 자동화)
+                    if (!_adjacencyMap.ContainsKey(neighbor.id))
+                        _adjacencyMap[neighbor.id] = new HashSet<string>();
+
+                    _adjacencyMap[neighbor.id].Add(node.id);
+                }
+            }
+            Debug.Log("<color=cyan>[SkillTreeManager]</color> 양방향 인접 맵 빌드 완료.");
         }
 
         public bool IsAllocated(string id) => _allocatedNodeIds.Contains(id);
 
         public bool CanAllocate(SkillNodeData node)
         {
-            if (availablePoints <= 0 || IsAllocated(node.id)) return false;
+            if (node == null || availablePoints <= 0 || IsAllocated(node.id)) return false;
             if (node.isStartNode) return true;
 
-            // 인접 노드 중 하나라도 할당되어 있는지 확인
-            return node.neighbors.Any(neighbor => IsAllocated(neighbor.id));
+            // 인접 맵을 사용하여 연결된 노드가 있는지 확인
+            if (_adjacencyMap.TryGetValue(node.id, out var neighbors))
+            {
+                return neighbors.Any(neighborId => IsAllocated(neighborId));
+            }
+            return false;
         }
 
         public void Allocate(SkillNodeData node)
@@ -66,7 +92,7 @@ namespace PoE_SkillTree
             _allocatedNodeIds.Add(node.id);
             availablePoints--;
 
-            Debug.Log($"<color=cyan>[SkillTree]</color> 할당 성공: {node.skillName}. 남은 포인트: {availablePoints}");
+            Debug.Log($"<color=green>[SkillTree]</color> 할당: <b>{node.skillName}</b>. 남은 포인트: {availablePoints}");
             CalculateAndPrintStats();
 
             OnTreeChanged?.Invoke();
@@ -75,21 +101,19 @@ namespace PoE_SkillTree
 
         public void Deallocate(SkillNodeData node)
         {
-            // 할당되지 않았거나 시작 노드인 경우 해제 불가
             if (!IsAllocated(node.id) || node.isStartNode) return;
 
             _allocatedNodeIds.Remove(node.id);
 
-            // 경로 단절 검사 (BFS): 트리의 모든 활성 노드가 시작 노드와 연결되어 있는지 확인
             if (!IsConnectivityValid())
             {
-                _allocatedNodeIds.Add(node.id); // 복구
-                Debug.LogWarning("<color=red>[SkillTree] 할당 해제 불가:</color> 해당 노드를 제거하면 연결 경로가 끊어집니다.");
+                _allocatedNodeIds.Add(node.id);
+                Debug.LogWarning("<color=red>[SkillTree] 해제 불가:</color> 경로가 끊어집니다.");
                 return;
             }
 
             availablePoints++;
-            Debug.Log($"<color=orange>[SkillTree]</color> 해제 성공: {node.skillName}. 남은 포인트: {availablePoints}");
+            Debug.Log($"<color=orange>[SkillTree]</color> 해제: <b>{node.skillName}</b>. 남은 포인트: {availablePoints}");
             CalculateAndPrintStats();
 
             OnTreeChanged?.Invoke();
@@ -100,29 +124,34 @@ namespace PoE_SkillTree
         {
             if (_allocatedNodeIds.Count == 0) return true;
 
-            // 할당된 노드 중 시작 노드들을 찾음
             var startNodes = allNodes.Where(n => n.isStartNode && IsAllocated(n.id)).ToList();
             if (startNodes.Count == 0 && _allocatedNodeIds.Count > 0) return false;
 
-            // BFS를 통해 도달 가능한 모든 할당된 노드 탐색
             HashSet<string> reachable = new HashSet<string>();
-            Queue<SkillNodeData> queue = new Queue<SkillNodeData>(startNodes);
-            foreach (var sn in startNodes) reachable.Add(sn.id);
+            Queue<string> queue = new Queue<string>();
+
+            foreach (var sn in startNodes)
+            {
+                reachable.Add(sn.id);
+                queue.Enqueue(sn.id);
+            }
 
             while (queue.Count > 0)
             {
-                var current = queue.Dequeue();
-                foreach (var neighbor in current.neighbors)
+                string currentId = queue.Dequeue();
+                if (_adjacencyMap.TryGetValue(currentId, out var neighbors))
                 {
-                    if (IsAllocated(neighbor.id) && !reachable.Contains(neighbor.id))
+                    foreach (var neighborId in neighbors)
                     {
-                        reachable.Add(neighbor.id);
-                        queue.Enqueue(neighbor);
+                        if (IsAllocated(neighborId) && !reachable.Contains(neighborId))
+                        {
+                            reachable.Add(neighborId);
+                            queue.Enqueue(neighborId);
+                        }
                     }
                 }
             }
 
-            // 도달 가능한 노드 수와 전체 할당된 노드 수가 같아야 유효함
             return reachable.Count == _allocatedNodeIds.Count;
         }
 
@@ -140,7 +169,7 @@ namespace PoE_SkillTree
                 }
             }
 
-            string log = "<b>[현재 보너스 총합]</b> ";
+            string log = "<b>[보너스 총합]</b> ";
             foreach (var kvp in totals) log += $"{kvp.Key}(+{kvp.Value}) ";
             Debug.Log(log);
         }
