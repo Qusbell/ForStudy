@@ -19,5 +19,6 @@ MonoBehaviour:
   modifiers:
   - type: 1
     value: 0
-  neighbors: []
+  neighbors:
+  - {fileID: 11400000, guid: e30cd22099a29374895130d6f803f93f, type: 2}
   isStartNode: 0
