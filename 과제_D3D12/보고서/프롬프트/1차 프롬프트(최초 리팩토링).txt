@@ -1,0 +1,14 @@
+# 과목
+- 게임 그래픽 프로그래밍
+- Direct 12 학습
+
+# 작업
+- Chapter 12 The Geometry Shader/TreeBillboards 리팩토링
+- 1. TreeBillboardsApp.cpp의 코드들을 매니저 클래스로 분리한다.
+- 2. -s(복수형) 메서드를 단수형 메서드로 분리한다. (예: BuildMaterials --> BuildMaterial)
+- 3. 기존의 동작에서 변함은 최대한 없도록 한다.
+
+# 작업지침
+- Manager 클래스는 Canvas로, 하나의 파일에 대해서 생략없이 출력하세요.
+- 기존의 주석은 그대로 유지하며, 새로 추가/변경된 부분에만 주석을 작성하세요.
+- TreeBillboardsApp.cpp에서 변경해야 하는 부분이 있다면, Canvas 대신 대화 본문에, 변경해야 하는 부분에 대해서만 출력하세요.
