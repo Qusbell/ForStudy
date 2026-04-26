@@ -94,7 +94,7 @@ void ResourceManager::BuildGeometry(
 void ResourceManager::BuildBoxGeometry(ID3D12GraphicsCommandList* cmdList)
 {
     GeometryGenerator geoGen;
-    GeometryGenerator::MeshData box = geoGen.CreateBox(1.5f, 0.5f, 1.5f, 3);
+    GeometryGenerator::MeshData box = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3);
 
     std::vector<Vertex> vertices(box.Vertices.size());
     for (size_t i = 0; i < box.Vertices.size(); ++i)

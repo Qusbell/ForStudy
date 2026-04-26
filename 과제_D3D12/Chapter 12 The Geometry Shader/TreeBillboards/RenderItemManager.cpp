@@ -58,7 +58,10 @@ void RenderItemManager::BuildRenderItems()
     DirectX::XMStoreFloat4x4(&texScale, DirectX::XMMatrixScaling(5.0f, 5.0f, 1.0f));
 
     DirectX::XMFLOAT4X4 boxWorld;
-    DirectX::XMStoreFloat4x4(&boxWorld, DirectX::XMMatrixTranslation(3.0f, 2.0f, -9.0f));
+    DirectX::XMMATRIX scale = DirectX::XMMatrixScaling(5.0f, 5.0f, 5.0f);
+    DirectX::XMMATRIX rotation = DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(45.0f));
+    DirectX::XMMATRIX translation = DirectX::XMMatrixTranslation(0.0f, 5.0f, -10.0f);
+    DirectX::XMStoreFloat4x4(&boxWorld, scale * rotation * translation);
 
     // 1. Water (Waves) - 파생 포인터를 유지해야 하므로 반환값을 mWavesRitem에 저장
     mWavesRitem = BuildRenderItem(RenderLayer::Transparent, "waterGeo", "grid", "water", 0, identity, texScale);
