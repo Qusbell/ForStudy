@@ -1,0 +1,19 @@
+{
+    "name": "SampleEditorSDK",
+    "rootNamespace": "",
+    "references": [
+        "GUID:d438c09b335288f4c8d810454515009b",
+        "GUID:2d254e47259698244a1351e44045e144"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

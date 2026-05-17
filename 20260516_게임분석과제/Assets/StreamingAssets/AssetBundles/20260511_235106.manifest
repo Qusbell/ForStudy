@@ -1,0 +1,22 @@
+ManifestFileVersion: 0
+CRC: 1533446050
+AssetBundleManifest:
+  AssetBundleInfos:
+    Info_0:
+      Name: character_001.ab
+      Dependencies: {}
+    Info_1:
+      Name: character_002.ab
+      Dependencies: {}
+    Info_2:
+      Name: character_003.ab
+      Dependencies: {}
+    Info_3:
+      Name: character_004.ab
+      Dependencies: {}
+    Info_4:
+      Name: character_005.ab
+      Dependencies: {}
+    Info_5:
+      Name: character_006.ab
+      Dependencies: {}
