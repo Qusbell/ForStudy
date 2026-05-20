@@ -1,4 +1,4 @@
-using Cysharp.Threading.Tasks;
+﻿using Cysharp.Threading.Tasks;
 using SampleAppSystemSDK.Application;
 using SampleResourceSDK.Application;
 using SampleResourceSDK.Domain;
@@ -10,6 +10,15 @@ using UniRx;
 
 namespace SampleApp.Model
 {
+    /// <summary>
+    /// 모든 IApplication은 '대응되는 IDomain'이 존재하며, 리뷰 결과 일관적으로 이하의 구조를 유지하고 있었다.
+    /// <br/>
+    /// 제어 흐름(호출 순서와는 역방향) : Infrastructure --> IDomain --> IApplication --> Model <br/>
+    /// 1. Infrastructure : 인프라(기반 구조). 대부분 Engine-agnostic(엔진에 구애받지 않는) 형태로 제작된 코드.
+    /// 2. IDomain(인프라 사용설명서) : Infrastructure를 어떻게 사용해야 하는지에 대한 인터페이스.
+    /// 3. IApplication(응용 사용법) : IDomain을 활용해서 제작한, 실제 응용 프로그램의 인터페이스.
+    /// 4. Model(모델) : IApplication을 활용해서 제작한, 실제 응용 프로그램의 구현체. (실제 응용 프로그램의 '데이터 및 로직'이 담긴 클래스)
+    /// </summary>
     public class ResourceLoadModel : IResourceLoadModel, IDisposable
     {
         private IResourceLoadApplication _resourceLoadApplication;
