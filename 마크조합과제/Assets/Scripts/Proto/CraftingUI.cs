@@ -1,15 +1,18 @@
 ﻿using UnityEngine;
 
+/// <summary>
+/// 조합 UI 판넬 내부의 전체 입력/출력 슬롯의 변경 상태를 감지하고 연산을 조율합니다.
+/// </summary>
 public class CraftingUI : MonoBehaviour
 {
     [SerializeField] private CraftingManager _craftingManager;
 
     [Header("조합대 격자 규격 설정")]
-    [SerializeField] private int _gridWidth = 3;   // 나중에 4x4로 늘리고 싶다면 인스펙터에서 4로 변경
-    [SerializeField] private int _gridHeight = 3;  // 나중에 4x4로 늘리고 싶다면 인스펙터에서 4로 변경
+    [SerializeField] private int _gridWidth = 3;
+    [SerializeField] private int _gridHeight = 3;
 
     [Header("슬롯 UI 배열")]
-    [SerializeField] private CraftingSlot[] _inputSlots; // 크기는 _gridWidth * _gridHeight와 같아야 함
+    [SerializeField] private CraftingSlot[] _inputSlots;
     [SerializeField] private CraftingSlot _outputSlot;
 
     private void Start()
@@ -26,6 +29,11 @@ public class CraftingUI : MonoBehaviour
                 slot.OnSlotChanged += UpdateCrafting;
             }
         }
+
+        if (_outputSlot != null)
+        {
+            _outputSlot.OnOutputTaken += ConsumeIngredients;
+        }
     }
 
     private void OnDestroy()
@@ -39,6 +47,11 @@ public class CraftingUI : MonoBehaviour
                     slot.OnSlotChanged -= UpdateCrafting;
                 }
             }
+        }
+
+        if (_outputSlot != null)
+        {
+            _outputSlot.OnOutputTaken -= ConsumeIngredients;
         }
     }
 
@@ -69,6 +82,33 @@ public class CraftingUI : MonoBehaviour
                 _outputSlot.ClearSlot();
             }
         }
+    }
+
+    /// <summary>
+    /// 조합이 성공하여 결과 슬롯에서 아이템을 가져갔을 때, 조합대에 등록된 모든 재료를 1개씩 감소시킵니다.
+    /// </summary>
+    private void ConsumeIngredients()
+    {
+        if (_inputSlots == null) return;
+
+        foreach (var slot in _inputSlots)
+        {
+            if (slot != null && !slot.IsEmpty)
+            {
+                int newCount = slot.Count - 1;
+                if (newCount <= 0)
+                {
+                    slot.ClearSlot();
+                }
+                else
+                {
+                    slot.SetItem(slot.Item, newCount);
+                }
+            }
+        }
+
+        // 재료가 한 층 깎인 뒤 다시 새로운 프리뷰 결과를 업데이트합니다.
+        UpdateCrafting();
     }
 
     public void Test_SetupGrid(ItemData[] testItems)
