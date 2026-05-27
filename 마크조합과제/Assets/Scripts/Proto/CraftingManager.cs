@@ -6,8 +6,7 @@ public class CraftingManager : MonoBehaviour
     [SerializeField] private List<RecipeData> _recipes;
 
     /// <summary>
-    /// 현재 조합대 격자(Grid)의 아이템 구성이 등록된 레시피와 일치하는지 검사합니다.
-    /// 이 메서드는 조합대 크기(3x3, 4x4 등)에 구애받지 않고 작동합니다.
+    /// 현재 조합대 격자(Grid)의 아이템 구성이 등록된 레시피와 일치하는지 검사
     /// </summary>
     public bool HasMatchingRecipe(ItemData[] grid, int gridWidth, int gridHeight, out ItemData result, out int count)
     {
@@ -44,7 +43,7 @@ public class CraftingManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 실제 아이템이 배치된 영역의 상하좌우 경계(인덱스)를 찾습니다.
+    /// 실제 아이템이 배치된 영역의 상하좌우 경계(인덱스)를 탐색
     /// </summary>
     private bool GetGridBounds(ItemData[] grid, int width, int height, out int minX, out int maxX, out int minY, out int maxY)
     {
@@ -75,7 +74,7 @@ public class CraftingManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 잘라낸 입력 영역의 아이템 배치 패턴이 레시피와 1:1로 일치하는지 검증합니다.
+    /// 잘라낸 입력 영역의 아이템 배치 패턴이 레시피와 1:1로 일치하는지 검증
     /// </summary>
     private bool CheckPatternMatch(ItemData[] grid, int gridWidth, RecipeData recipe, int startX, int startY, int width, int height)
     {

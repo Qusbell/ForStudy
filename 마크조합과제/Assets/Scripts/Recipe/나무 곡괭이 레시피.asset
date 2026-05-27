@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9e6972cb554dac4ca30a607a9690494, type: 3}
+  m_Name: "\uB098\uBB34 \uACE1\uAD2D\uC774 \uB808\uC2DC\uD53C"
+  m_EditorClassIdentifier: Assembly-CSharp::RecipeData
+  _recipeWidth: 3
+  _recipeHeight: 3
+  _ingredients:
+  - {fileID: 11400000, guid: 3994adbf48911c34ca06ea1287b38852, type: 2}
+  - {fileID: 11400000, guid: 3994adbf48911c34ca06ea1287b38852, type: 2}
+  - {fileID: 11400000, guid: 3994adbf48911c34ca06ea1287b38852, type: 2}
+  - {fileID: 0}
+  - {fileID: 11400000, guid: 084f81d7309142044b44c5b6b038bd90, type: 2}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 11400000, guid: 084f81d7309142044b44c5b6b038bd90, type: 2}
+  - {fileID: 0}
+  _resultItem: {fileID: 11400000, guid: c59f0cab3d1247c47bd43f2e5fa507f9, type: 2}
+  _resultCount: 1
